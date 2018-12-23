@@ -5,7 +5,7 @@ This repo is heavily based of [probe](https://github.com/torbiak/probe) without 
 The api's are influenced by [VSCode QuickPick api](https://code.visualstudio.com/api/references/vscode-api#QuickPick).
 
 # Pickers
-quickpick.vim deliberately does not contain any sources. Please use one of the following sources or create your own and send a pull request to be added here.
+quickpick.vim deliberately does not contain any sources as this allows the core to be very small and focus on providing the best and fast apis for other to use it. Please use one of the following sources or create your own and send a pull request to be added here.
 
 *in alphabetical order*
 
