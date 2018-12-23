@@ -1,0 +1,48 @@
+*quickpick.vim.txt* A UI for Vim to let the user pick and item from a list.
+*quickpick*
+
+
+===============================================================================
+CONTENTS                                                   *quickpick-contents*
+
+    Introduction              |quickpick-introduction|
+    Install                   |quickpick-install|
+    Example                   |quickpick-example|
+
+===============================================================================
+INTRODUCTION                                           *quickpick-introduction*
+
+A UI for Vim to let the user pick an item from a list.
+
+This repo is heavily based of https://github.com/torbiak/probe without which
+quickpick.vim wouldn't be possible. The api's are influenced by VS Code apis -
+https://code.visualstudio.com/api/references/vscode-api#QuickPick.
+
+================================================================================
+INSTALL                                                    *quickpick-install*
+
+    Plug 'prabirshrestha/quickpick.vim'
+
+================================================================================
+EXAMPLE                                                    *quickpick-install*
+
+    let s:items = ['January', 'February', 'March', 'April', 'May', 'June',
+        \ 'July', 'August', 'September', 'October', 'November', 'December']
+
+    function! s:on_change(id, action, data) abort
+        let search_text = tolower(a:data)
+        let items = filter(copy(s:items), {index, item-> stridx(tolower(item), search_text) > -1})
+        call quickpick#set_items(a:id, items)
+    endfunction
+
+    function! s:on_accept(id, action, data) abort
+        call quickpick#close(a:id)
+        echo json_encode(a:data['items'])
+    endfunction
+
+    let id = quickpick#create({
+        \ 'on_change': function('s:on_change'),
+        \ 'on_accept': function('s:on_accept'),
+        \ 'items': copy(s:items)
+        \ })
+    call quickpick#show(id)
