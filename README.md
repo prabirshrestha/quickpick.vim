@@ -13,6 +13,7 @@ quickpick.vim deliberately does not contain any sources as this allows the core 
 | Source                        | Links                                                                                              |
 |-------------------------------|----------------------------------------------------------------------------------------------------|
 | Colorscheme                   | [quickpick-colorscheme.vim](https://github.com/prabirshrestha/quickpick-colorscheme.vim)           |
+| Filetypes                     | [quickpick-filetypes.vim](https://github.com/prabirshrestha/quickpick-filetypes.vim)               |
 
 # Roadmap
 
