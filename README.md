@@ -4,7 +4,7 @@ A UI for Vim to let the user pick an item from a list similar to [CtrlP](https:/
 This repo is heavily based of [probe](https://github.com/torbiak/probe) without which quickpick.vim wouldn't be possible.
 The api's are influenced by [VSCode QuickPick api](https://code.visualstudio.com/api/references/vscode-api#QuickPick).
 
-# Sources
+# Pickers
 quickpick.vim deliberately does not contain any sources. Please use one of the following sources or create your own.
 
 *in alphabetical order*
@@ -13,8 +13,6 @@ quickpick.vim deliberately does not contain any sources. Please use one of the f
 | Source                        | Links                                                                                              |
 |-------------------------------|----------------------------------------------------------------------------------------------------|
 | Colorscheme                   | [quickpick-colorscheme.vim](https://github.com/prabirshrestha/quickpick-colorscheme.vim)           |
-
-# Pickers
 
 
 # Why?
