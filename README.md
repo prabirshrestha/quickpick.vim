@@ -7,6 +7,9 @@ The api's are influenced by [VSCode QuickPick api](https://code.visualstudio.com
 # Sources
 quickpick.vim deliberately does not contain any sources. Please use one of the following sources or create your own.
 
+*in alphabetical order*
+
+
 | Source                        | Links                                                                                              |
 |-------------------------------|----------------------------------------------------------------------------------------------------|
 | Colorscheme                   | [quickpick-colorscheme.vim](https://github.com/prabirshrestha/quickpick-colorscheme.vim)           |
