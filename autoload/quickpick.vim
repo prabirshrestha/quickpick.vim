@@ -66,7 +66,7 @@ function! quickpick#set_items(id, items) abort
     " items is a list of string
     " or list of dictionary of type { 'label': 'text', 'user_data': 'any type. can be dict' }
     let s:pickers[a:id]['items'] = a:items
-    call s:redraw_items(a:id)
+    call s:render_items(a:id)
 endfunction
 
 function! quickpick#set_busy(id, busy) abort
@@ -86,7 +86,7 @@ function! s:render() abort
 	let s:pos = 0
 	call s:render_prompt()
     call s:render_status_line(s:current)
-    call s:redraw_items(s:current)
+    call s:render_items(s:current)
 	call s:map_keys()
     call s:start_busy_timer(s:current)
 endfunction
@@ -106,7 +106,7 @@ function! s:is_dict_items(items) abort
     return !empty(a:items) && type(a:items[0]) == type({})
 endfunction
 
-function! s:redraw_items(id) abort
+function! s:render_items(id) abort
     if s:current > 0 && s:current == a:id
         let picker = s:pickers[s:current]
         let items = picker['items']
