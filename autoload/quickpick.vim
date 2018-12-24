@@ -125,6 +125,7 @@ function! s:set_buffer_options() abort
     setlocal nobuflisted      " don't show up in the buffer list
     setlocal textwidth=0      " don't hard-wrap (break long lines)
     setlocal cursorline       " highlight the line cursor is on
+    setlocal noundofile       " don't enable undo
     if exists('+colorcolumn')
         setlocal colorcolumn=0
     endif
@@ -162,7 +163,6 @@ function! s:map_keys() abort
     exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-j>', '<SID>on_move_next', s:current)
     exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-p>', '<SID>on_move_previous', s:current)
     exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-k>', '<SID>on_move_previous', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-z>', '<SID>on_mark_toggle', s:current)
 endfunction
 
 function! s:map_key(key, func_name, ...) abort
