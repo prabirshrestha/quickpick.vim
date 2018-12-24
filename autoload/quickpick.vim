@@ -121,10 +121,10 @@ function! s:set_buffer_options() abort
     setlocal nolist           " don't use List mode (visible tabs etc)
     setlocal foldcolumn=0     " don't show a fold column at side
     setlocal foldlevel=99     " don't fold anything
-    setlocal nocursorline     " don't highlight line cursor is on
     setlocal nospell          " spell-checking off
     setlocal nobuflisted      " don't show up in the buffer list
     setlocal textwidth=0      " don't hard-wrap (break long lines)
+    setlocal cursorline       " highlight the line cursor is on
     if exists('+colorcolumn')
         setlocal colorcolumn=0
     endif
