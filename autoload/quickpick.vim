@@ -14,6 +14,7 @@ function! quickpick#create(...) abort
         \   'busy': 0,
         \   'busy_frames': ['-', '\', '|', '/'],
         \   'busy_current_frame': 0,
+        \   'accept_empty': 0,
         \ },
         \ (len(a:000) == 0 ? {} : a:1))
     return s:id
@@ -262,9 +263,11 @@ endfunction
 
 function! s:on_accept(id) abort
 	let picker = s:pickers[a:id]
-    let selections = [line('.')]
-    let items = map(selections, 'picker["items"][v:val - 1]')
-	call picker['on_accept'](a:id, 'accept', {'items': items})
+    let selections = line('.') > len(picker['items']) ? [] : [line('.')]
+    if !empty(selections) || (empty(selections) && picker['accept_empty'])
+        let items = map(selections, 'picker["items"][v:val - 1]')
+        call picker['on_accept'](a:id, 'accept', {'items': items})
+    endif
 endfunction
 
 function! s:on_move_next(id) abort
