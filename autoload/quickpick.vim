@@ -57,6 +57,10 @@ function! quickpick#close(id) abort
 	endif
 endfunction
 
+function! quickpick#exists(id) abort
+    return has_key(s:pickers, a:id)
+endfunction
+
 function! quickpick#set_items(id, items) abort
     let s:pickers[a:id]['items'] = a:items
     call s:redraw_items(a:id)
