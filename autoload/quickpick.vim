@@ -4,12 +4,16 @@ let s:current = -1
 let s:bufnr = -1
 let s:input = ''
 let s:pos = 0
+let s:busy_timers = {}
 
 function! quickpick#create(...) abort
     let s:id = s:id + 1
     let s:pickers[s:id] = extend({
         \ 	'prompt': '> ',
         \   'items': [],
+        \   'busy': 0,
+        \   'busy_frames': ['-', '\', '|', '/'],
+        \   'busy_current_frame': 0,
         \ },
         \ (len(a:000) == 0 ? {} : a:1))
     return s:id
@@ -31,7 +35,8 @@ function! quickpick#show(id) abort
 endfunction
 
 function! quickpick#hide(id) abort
-	if s:current == a:id
+    if s:current == a:id
+        call s:stop_busy_timer(a:id)
 		silent quit
 		exe 'silent! bunload! ' . s:bufnr
 		let s:bufnr = -1
@@ -39,6 +44,9 @@ function! quickpick#hide(id) abort
 		redraw
 		echo
 		mapclear <buffer>
+        if exists('unlet g:quickpick__busy_frame_'.a:id)
+            exe printf('unlet g:quickpick__busy_frame_%s', a:id)
+        endif
 	endif
 endfunction
 
@@ -54,13 +62,37 @@ function! quickpick#set_items(id, items) abort
     call s:redraw_items(a:id)
 endfunction
 
+function! quickpick#set_busy(id, busy) abort
+    let s:pickers[a:id]['busy'] = a:busy
+    if (a:busy)
+        call s:start_busy_timer(s:current)
+    else
+        call s:stop_busy_timer(s:current)
+    endif
+    redraw!
+    call s:render_prompt()
+endfunction
+
 function! s:render() abort
     call s:create_buffer_if_not_exists()
 	let s:input = ''
 	let s:pos = 0
 	call s:render_prompt()
+    call s:render_status_line(s:current)
     call s:redraw_items(s:current)
 	call s:map_keys()
+    call s:start_busy_timer(s:current)
+endfunction
+
+function! s:render_status_line(id) abort
+    let picker = s:pickers[a:id]
+    exe printf('let g:quickpick__busy_frame_%s="%s"', a:id, ' ')
+    set laststatus=2
+    set statusline=
+    setlocal statusline=\ 
+    exe printf('setlocal statusline+=%%{g:quickpick__busy_frame_%s}', a:id)
+    setlocal statusline+=\ 
+    setlocal statusline+=QuickPick
 endfunction
 
 function! s:redraw_items(id) abort
@@ -132,6 +164,8 @@ function! s:set_buffer_options() abort
     if exists('+relativenumber')
         setlocal norelativenumber
     endif
+
+    setlocal laststatus=2
 endfunction
 
 function! s:buf_leave() abort
@@ -228,6 +262,34 @@ endfunction
 
 function! s:on_cancel(id) abort
     call quickpick#close(a:id)
+endfunction
+
+function! s:start_busy_timer(id) abort
+    if (s:pickers[a:id]['busy'])
+        if !has_key(s:busy_timers, a:id)
+            let s:busy_timers[a:id] = timer_start(80, function('s:busy_tick', [a:id]), { 'repeat': -1 })
+        endif
+    endif
+endfunction
+
+function! s:busy_tick(id, ...) abort
+    let picker = s:pickers[a:id]
+    let picker['busy_current_frame'] = picker['busy_current_frame'] + 1
+    if picker['busy_current_frame'] >= len(picker['busy_frames'])
+        let picker['busy_current_frame'] = 0
+    endif
+    exe printf("let g:quickpick__busy_frame_%s='%s'", a:id, picker['busy_frames'][picker['busy_current_frame']])
+    redraw!
+    call s:render_prompt()
+endfunction
+
+function! s:stop_busy_timer(id) abort
+    if has_key(s:busy_timers, a:id)
+        call timer_stop(s:busy_timers[a:id])
+        call remove(s:busy_timers, a:id)
+    endif
+    let s:pickers[a:id]['busy_current_frame'] = 0
+    exe printf('let g:quickpick__busy_frame_%s="%s"', a:id, ' ')
 endfunction
 
 augroup QuickPick
