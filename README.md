@@ -5,7 +5,7 @@ This repo is heavily based of [probe](https://github.com/torbiak/probe) without 
 The api's are influenced by [VSCode QuickPick api](https://code.visualstudio.com/api/references/vscode-api#QuickPick).
 
 # Pickers
-quickpick.vim deliberately does not contain any sources as this allows the core to be very small and focus on providing the best and fast apis for other to use it. Please use one of the following sources or create your own and send a pull request to be added here.
+quickpick.vim deliberately does not contain any sources as this allows the core to be very small and focus on providing the best and fast apis for other to use it.
 
 *in alphabetical order*
 
@@ -14,6 +14,8 @@ quickpick.vim deliberately does not contain any sources as this allows the core 
 |-------------------------------|----------------------------------------------------------------------------------------------------|
 | Colorschemes                  | [quickpick-colorschemes.vim](https://github.com/prabirshrestha/quickpick-colorschemes.vim)         |
 | Filetypes                     | [quickpick-filetypes.vim](https://github.com/prabirshrestha/quickpick-filetypes.vim)               |
+
+Can't find what you are looking for? Write one instead an send a PR to be included here or search github topics tagged with `quickpickvim` at https://github.com/topics/quickpickvim.
 
 # Roadmap
 
