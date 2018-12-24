@@ -62,6 +62,8 @@ function! quickpick#exists(id) abort
 endfunction
 
 function! quickpick#set_items(id, items) abort
+    " items is a list of string
+    " or list of dictionary of type { 'label': 'text', 'user_data': 'any type. can be dict' }
     let s:pickers[a:id]['items'] = a:items
     call s:redraw_items(a:id)
 endfunction
@@ -99,12 +101,20 @@ function! s:render_status_line(id) abort
     setlocal statusline+=QuickPick
 endfunction
 
+function! s:is_dict_items(items) abort
+    return !empty(a:items) && type(a:items[0]) == type({})
+endfunction
+
 function! s:redraw_items(id) abort
     if s:current > 0 && s:current == a:id
         let picker = s:pickers[s:current]
         let items = picker['items']
         silent! %delete
-        call setline(1, items)
+        if s:is_dict_items(items)
+            call setline(1, map(copy(items), 'v:val["label"]'))
+        else
+            call setline(1, items)
+        endif
         let maxheight = 15
         exe printf('resize %d', min([len(items), maxheight]))
     endif
@@ -252,7 +262,8 @@ endfunction
 
 function! s:on_accept(id) abort
 	let picker = s:pickers[a:id]
-	let items = [getline('.')]
+    let selections = [line('.')]
+    let items = map(selections, 'picker["items"][v:val - 1]')
 	call picker['on_accept'](a:id, 'accept', {'items': items})
 endfunction
 
