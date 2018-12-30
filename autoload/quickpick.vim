@@ -54,6 +54,10 @@ endfunction
 function! quickpick#close(id) abort
 	call quickpick#hide(a:id)
 	if has_key(s:pickers, a:id)
+        let picker = s:pickers[a:id]
+        if has_key(picker, 'on_close')
+            call picker.on_close(a:id, 'close', {})
+        endif
 		call remove(s:pickers, a:id)
 	endif
 endfunction
