@@ -153,7 +153,7 @@ function! s:render_prompt() abort
     echohl None
     echon left
     echohl Underlined
-    echon cursor == '' ? ' ' : cursor
+    echon cursor ==? '' ? ' ' : cursor
     echohl None
     echon right
 endfunction
@@ -206,21 +206,21 @@ function! s:map_keys() abort
         endfor
     endfor
 
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<CR>', '<SID>on_accept', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<BS>', '<SID>on_backspace', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<Del>', '<SID>on_delete', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-d>', '<SID>on_delete', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-c>', '<SID>on_cancel', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<Esc>', '<SID>on_cancel', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-n>', '<SID>on_move_next', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-j>', '<SID>on_move_next', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-p>', '<SID>on_move_previous', s:current)
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", '<C-k>', '<SID>on_move_previous', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<CR>', '<SID>on_accept', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<BS>', '<SID>on_backspace', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<Del>', '<SID>on_delete', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-d>', '<SID>on_delete', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-c>', '<SID>on_cancel', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<Esc>', '<SID>on_cancel', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-n>', '<SID>on_move_next', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-j>', '<SID>on_move_next', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-p>', '<SID>on_move_previous', s:current)
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-k>', '<SID>on_move_previous', s:current)
 endfunction
 
 function! s:map_key(key, func_name, ...) abort
-    let args = empty(a:000) ? '' : string(join(a:000, ", "))
-    exec printf("noremap <silent> <buffer> %s :call %s(%s)<cr>", a:key, a:func_name, args)
+    let args = empty(a:000) ? '' : string(join(a:000, ', '))
+    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', a:key, a:func_name, args)
 endfunction
 
 function! s:handle_key(key) abort
