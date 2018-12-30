@@ -9,7 +9,7 @@ let s:busy_timers = {}
 function! quickpick#create(...) abort
     let s:id = s:id + 1
     let s:pickers[s:id] = extend({
-        \ 	'prompt': '> ',
+        \   'prompt': '> ',
         \   'items': [],
         \   'busy': 0,
         \   'busy_frames': ['-', '\', '|', '/'],
@@ -28,7 +28,7 @@ function! quickpick#show(id) abort
     if s:current != -1
         " todo hide existing picker
         call s:show_error('not implemented. hide existing picker first')
-		return -1
+        return -1
     endif
 
     let s:current = a:id
@@ -38,17 +38,17 @@ endfunction
 function! quickpick#hide(id) abort
     if s:current == a:id
         call s:stop_busy_timer(a:id)
-		silent quit
-		exe 'silent! bunload! ' . s:bufnr
-		let s:bufnr = -1
-		let s:current = -1
-		redraw
-		echo
-		mapclear <buffer>
+        silent quit
+        exe 'silent! bunload! ' . s:bufnr
+        let s:bufnr = -1
+        let s:current = -1
+        redraw
+        echo
+        mapclear <buffer>
         if exists('unlet g:quickpick__busy_frame_'.a:id)
             exe printf('unlet g:quickpick__busy_frame_%s', a:id)
         endif
-	endif
+    endif
 endfunction
 
 function! quickpick#close(id) abort
@@ -58,7 +58,7 @@ function! quickpick#close(id) abort
         if has_key(picker, 'on_close')
             call picker.on_close(a:id, 'close', {})
         endif
-		call remove(s:pickers, a:id)
+        call remove(s:pickers, a:id)
 	endif
 endfunction
 
@@ -86,20 +86,20 @@ endfunction
 
 function! s:render() abort
     call s:create_buffer_if_not_exists()
-	let s:input = ''
-	let s:pos = 0
-	call s:render_prompt()
+    let s:input = ''
+    let s:pos = 0
+    call s:render_prompt()
     call s:render_status_line(s:current)
     call s:render_items(s:current)
-	call s:map_keys()
+    call s:map_keys()
     call s:start_busy_timer(s:current)
 endfunction
 
 function! s:render_status_line(id) abort
     let picker = s:pickers[a:id]
     exe printf('let g:quickpick__busy_frame_%s="%s"', a:id, ' ')
-    set laststatus=2
-    set statusline=
+    setlocal laststatus=2
+    setlocal statusline=
     setlocal statusline=\ 
     exe printf('setlocal statusline+=%%{g:quickpick__busy_frame_%s}', a:id)
     setlocal statusline+=\ 
@@ -145,14 +145,14 @@ function! s:split_input()
 endfunction
 
 function! s:render_prompt() abort
-	redraw
-	let [left, cursor, right] = s:split_input()
-	let picker = s:pickers[s:current]
-	echohl Comment
+    redraw
+    let [left, cursor, right] = s:split_input()
+    let picker = s:pickers[s:current]
+    echohl Comment
     echon picker['prompt']
     echohl None
     echon left
-	echohl Underlined
+    echohl Underlined
     echon cursor == '' ? ' ' : cursor
     echohl None
     echon right
@@ -188,21 +188,21 @@ function! s:set_buffer_options() abort
 endfunction
 
 function! s:buf_leave() abort
-	if s:bufnr > 0
-		let picker = s:pickers[s:current]
+    if s:bufnr > 0
+        let picker = s:pickers[s:current]
         call quickpick#hide(s:current)
-	endif
+    endif
 endfunction
 
 function! s:map_keys() abort
-	" Basic keys that aren't customizable.
+    " Basic keys that aren't customizable.
     let lowercase = 'abcdefghijklmnopqrstuvwxyz'
     let uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     let numbers = '0123456789'
     let punctuation = "<>`@#~!\"$%&/()=+*-_.,;:?\\\'{}[] " " and space
     for str in [lowercase, uppercase, numbers, punctuation]
         for key in split(str, '\zs')
-			call s:map_key(printf('<Char-%d>', char2nr(key)), '<SID>handle_key', key)
+            call s:map_key(printf('<Char-%d>', char2nr(key)), '<SID>handle_key', key)
         endfor
     endfor
 
@@ -224,11 +224,11 @@ function! s:map_key(key, func_name, ...) abort
 endfunction
 
 function! s:handle_key(key) abort
-	let [left, cursor, right] = s:split_input()
+    let [left, cursor, right] = s:split_input()
     let s:input = left . a:key . cursor . right
     let s:pos += 1
-	call s:render_prompt()
-	call s:change_hook()
+    call s:render_prompt()
+    call s:change_hook()
 endfunction
 
 function! s:change_hook() abort
@@ -239,7 +239,7 @@ function! s:change_hook() abort
 endfunction
 
 function! s:handle_event(hook) abort
-	let picker = s:pickers[s:current]
+    let picker = s:pickers[s:current]
     exec printf('call <SID>%s()', a:hook)
     if has_key(picker, a:hook)
         call picker[a:hook](s:current)
@@ -266,7 +266,7 @@ function! s:on_delete(id) abort
 endfunction
 
 function! s:on_accept(id) abort
-	let picker = s:pickers[a:id]
+    let picker = s:pickers[a:id]
     let selections = line('.') > len(picker['items']) ? [] : [line('.')]
     if !empty(selections) || (empty(selections) && picker['accept_empty'])
         let items = map(selections, 'picker["items"][v:val - 1]')
@@ -315,6 +315,7 @@ function! s:stop_busy_timer(id) abort
 endfunction
 
 augroup QuickPick
-	autocmd!
+    autocmd!
     autocmd BufLeave QuickPick  silent! call s:buf_leave()
 augroup end
+" vim: set sw=4 ts=4 sts=4 et tw=78 foldmarker={{{,}}} foldmethod=marker spell:
