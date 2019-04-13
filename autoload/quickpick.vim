@@ -42,12 +42,12 @@ function! quickpick#hide(id) abort
         exe 'silent! bunload! ' . s:bufnr
         let s:bufnr = -1
         let s:current = -1
-        redraw
-        echo
         mapclear <buffer>
         if exists('unlet g:quickpick__busy_frame_'.a:id)
             exe printf('unlet g:quickpick__busy_frame_%s', a:id)
         endif
+        redraw
+        echo
     endif
 endfunction
 
@@ -80,7 +80,7 @@ function! quickpick#set_busy(id, busy) abort
     else
         call s:stop_busy_timer(s:current)
     endif
-    redraw!
+    redrawstatus
     call s:render_prompt()
 endfunction
 
@@ -145,17 +145,21 @@ function! s:split_input()
 endfunction
 
 function! s:render_prompt() abort
-    redraw
     let [left, cursor, right] = s:split_input()
     let picker = s:pickers[s:current]
+
     echohl Comment
     echon picker['prompt']
+
     echohl None
     echon left
     echohl Underlined
+
     echon cursor ==? '' ? ' ' : cursor
     echohl None
     echon right
+
+    redraw
 endfunction
 
 function! s:show_error(msg) abort
@@ -301,8 +305,7 @@ function! s:busy_tick(id, ...) abort
         let picker['busy_current_frame'] = 0
     endif
     exe printf("let g:quickpick__busy_frame_%s='%s'", a:id, picker['busy_frames'][picker['busy_current_frame']])
-    redraw!
-    call s:render_prompt()
+    redrawstatus
 endfunction
 
 function! s:stop_busy_timer(id) abort
