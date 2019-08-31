@@ -210,16 +210,17 @@ function! s:map_keys() abort
         endfor
     endfor
 
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<CR>', '<SID>on_accept', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<BS>', '<SID>on_backspace', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<Del>', '<SID>on_delete', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-d>', '<SID>on_delete', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-c>', '<SID>on_cancel', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<Esc>', '<SID>on_cancel', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-n>', '<SID>on_move_next', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-j>', '<SID>on_move_next', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-p>', '<SID>on_move_previous', s:current)
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', '<C-k>', '<SID>on_move_previous', s:current)
+    let s:mappings = {
+                \ '<Plug>(quickpick_accept)': '<SID>on_accept',
+                \ '<Plug>(quickpick_backspace)': '<SID>on_backspace',
+                \ '<Plug>(quickpick_delete)': '<SID>on_delete',
+                \ '<Plug>(quickpick_cancel)': '<SID>on_cancel',
+                \ '<Plug>(quickpick_move_next)': '<SID>on_move_next',
+                \ '<Plug>(quickpick_move_previous)': '<SID>on_move_previous',
+                \ }
+    for key in keys(s:mappings)
+        exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', key, s:mappings[key], s:current)
+    endfor
 endfunction
 
 function! s:map_key(key, func_name, ...) abort
