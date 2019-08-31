@@ -38,14 +38,14 @@ endfunction
 function! quickpick#hide(id) abort
     if s:current == a:id
         call s:stop_busy_timer(a:id)
-        silent quit
-        exe 'silent! bunload! ' . s:bufnr
-        let s:bufnr = -1
-        let s:current = -1
         mapclear <buffer>
         if exists('unlet g:quickpick__busy_frame_'.a:id)
             exe printf('unlet g:quickpick__busy_frame_%s', a:id)
         endif
+        silent quit
+        exe 'silent! bunload! ' . s:bufnr
+        let s:bufnr = -1
+        let s:current = -1
         redraw
         echo
     endif
