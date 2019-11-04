@@ -24,7 +24,7 @@ INSTALL                                                    *quickpick-install*
     Plug 'prabirshrestha/quickpick.vim'
 
 ================================================================================
-EXAMPLE                                                    *quickpick-install*
+EXAMPLE                                                    *quickpick-example*
 
     let s:items = ['January', 'February', 'March', 'April', 'May', 'June',
         \ 'July', 'August', 'September', 'October', 'November', 'December']
