@@ -122,6 +122,7 @@ function! s:render_items(id) abort
         endif
         let maxheight = 15
         exe printf('resize %d', min([len(items), maxheight]))
+        call s:selection_change_hook()
     endif
 endfunction
 
@@ -243,6 +244,17 @@ function! s:change_hook() abort
 	endif
 endfunction
 
+function! s:selection_change_hook() abort
+    let picker = s:pickers[s:current]
+    if has_key(picker, 'on_selection_change')
+        let selections = line('.') > len(picker['items']) ? [] : [line('.')]
+        let items = map(selections, 'picker["items"][v:val - 1]')
+        call picker['on_selection_change'](s:current, 'selection_change', { 'items': items })
+        redrawstatus
+        call s:render_prompt()
+    endif
+endfunction
+
 function! s:handle_event(hook) abort
     let picker = s:pickers[s:current]
     exec printf('call <SID>%s()', a:hook)
@@ -281,14 +293,20 @@ endfunction
 
 function! s:on_move_next(id) abort
     normal! j
+    call s:selection_change_hook()
 endfunction
 
 function! s:on_move_previous(id) abort
     normal! k
+    call s:selection_change_hook()
 endfunction
 
 function! s:on_cancel(id) abort
+    let picker = s:pickers[s:current]
     call quickpick#close(a:id)
+    if has_key(picker, 'on_cancel')
+        call picker['on_cancel'](s:current, 'cancel', {})
+    endif
 endfunction
 
 function! s:start_busy_timer(id) abort
