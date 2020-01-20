@@ -6,6 +6,9 @@ The api's are influenced by [VSCode QuickPick api](https://code.visualstudio.com
 
 ![NPM Picker](https://user-images.githubusercontent.com/287744/50551057-55441700-0c30-11e9-8842-d79182cdcaf0.gif)
 
+![Colorscheme Picker](https://user-images.githubusercontent.com/287744/72764564-9c83a980-3b9d-11ea-8135-3daf7bf380d9.gif)
+
+
 # Pickers
 quickpick.vim deliberately does not contain any sources as this allows the core to be very small and focus on providing the best and fast apis for other to use it.
 
