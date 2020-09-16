@@ -226,7 +226,7 @@ endfunction
 
 function! s:map_key(key, func_name, ...) abort
     let args = empty(a:000) ? '' : string(join(a:000, ', '))
-    exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', a:key, a:func_name, args)
+    exec printf('noremap <silent> <buffer> <nowait> %s :call %s(%s)<cr>', a:key, a:func_name, args)
 endfunction
 
 function! s:handle_key(key) abort
