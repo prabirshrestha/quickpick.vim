@@ -1,343 +1,204 @@
-let s:id = 0
-let s:pickers = {}
-let s:current = -1
-let s:bufnr = -1
-let s:input = ''
-let s:pos = 0
-let s:busy_timers = {}
+function! quickpick#open(opt) abort
+  call quickpick#close() " hide existing picker if exists
 
-function! quickpick#create(...) abort
-    let s:id = s:id + 1
-    let s:pickers[s:id] = extend({
-        \   'prompt': '> ',
-        \   'items': [],
-        \   'busy': 0,
-        \   'busy_frames': ['-', '\', '|', '/'],
-        \   'busy_current_frame': 0,
-        \   'accept_empty': 0,
-        \ },
-        \ (len(a:000) == 0 ? {} : a:1))
-    return s:id
-endfunction
+  let s:state = extend({
+      \ 'prompt': '>>>',
+      \ 'cursor': 0,
+      \ 'items': [],
+      \ 'busy': 0,
+      \ 'busyframes': [ '-', '\', '|', '/' ],
+      \ 'busycurrentframe': 0,
+      \ 'title': 'QuickPick',
+      \ 'filetype': 'quickpick',
+      \ 'plug': 'quickpick-',
+      \ 'input': '',
+      \ 'maxheight': 10,
+      \ }, a:opt)
+    
+  " create buffer
+  exe printf('keepalt botright 1new %s', s:state['title'])
+  let s:state['bufnr'] = bufnr('%')
 
-function! quickpick#show(id) abort
-    if a:id < 1
-        call s:show_error('invalid id ' . a:id)
-        return -1
-    endif
-    if s:current != -1
-        " todo hide existing picker
-        call s:show_error('not implemented. hide existing picker first')
-        return -1
-    endif
+  " set buffer options
+  abc <buffer>
+  exec printf('setlocal filetype=' . s:state['filetype'])
+  setlocal bufhidden=unload           " unload buf when no longer displayed
+  setlocal buftype=nofile             " buffer is not related to any file<Paste>
+  setlocal noswapfile                 " don't create swap file
+  setlocal nowrap                     " don't soft-wrap
+  setlocal nonumber                   " don't show line numbers
+  setlocal nolist                     " don't use list mode (visible tabs etc)
+  setlocal foldcolumn=0               " don't show a fold column at side
+  setlocal foldlevel=99               " don't fold anything
+  setlocal nospell                    " spell checking off
+  setlocal nobuflisted                " don't show up in the buffer list
+  setlocal textwidth=0                " don't hardwarp (break long lines)
+  setlocal cursorline                 " highlight the line cursor is on
+  setlocal nocursorcolumn             " disable cursor column
+  setlocal noundofile                 " don't enable undo
+  setlocal winfixheight
+  if exists('+colorcolumn') | setlocal colorcolumn=0 | endif
+  if exists('+relativenumber') | setlocal norelativenumber | endif
+  setlocal laststatus=2
 
-    let s:current = a:id
-    call s:render()
-endfunction
+  " set buf content and resize to best height
+  call setline(1, s:state['items'])
+  exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
 
-function! quickpick#hide(id) abort
-    if s:current == a:id
-        call s:stop_busy_timer(a:id)
-        mapclear <buffer>
-        if exists('unlet g:quickpick__busy_frame_'.a:id)
-            exe printf('unlet g:quickpick__busy_frame_%s', a:id)
-        endif
-        silent quit
-        exe 'silent! bunload! ' . s:bufnr
-        let s:bufnr = -1
-        let s:current = -1
-        redraw
-        echo
-    endif
-endfunction
-
-function! quickpick#close(id) abort
-	call quickpick#hide(a:id)
-	if has_key(s:pickers, a:id)
-        let picker = s:pickers[a:id]
-        if has_key(picker, 'on_close')
-            call picker.on_close(a:id, 'close', {})
-        endif
-        call remove(s:pickers, a:id)
-	endif
-endfunction
-
-function! quickpick#exists(id) abort
-    return has_key(s:pickers, a:id)
-endfunction
-
-function! quickpick#set_items(id, items) abort
-    " items is a list of string
-    " or list of dictionary of type { 'label': 'text', 'user_data': 'any type. can be dict' }
-    let s:pickers[a:id]['items'] = a:items
-    call s:render_items(a:id)
-endfunction
-
-function! quickpick#set_busy(id, busy) abort
-    let s:pickers[a:id]['busy'] = a:busy
-    if (a:busy)
-        call s:start_busy_timer(s:current)
-    else
-        call s:stop_busy_timer(s:current)
-    endif
-    redrawstatus
-    call s:render_prompt()
-endfunction
-
-function! s:render() abort
-    call s:create_buffer_if_not_exists()
-    let s:input = ''
-    let s:pos = 0
-    call s:render_prompt()
-    call s:render_status_line(s:current)
-    call s:render_items(s:current)
-    call s:map_keys()
-    call s:start_busy_timer(s:current)
-endfunction
-
-function! s:render_status_line(id) abort
-    let picker = s:pickers[a:id]
-    exe printf('let g:quickpick__busy_frame_%s="%s"', a:id, ' ')
-    setlocal laststatus=2
-    setlocal statusline=
-    setlocal statusline=\ 
-    exe printf('setlocal statusline+=%%{g:quickpick__busy_frame_%s}', a:id)
-    setlocal statusline+=\ 
-    setlocal statusline+=QuickPick
-endfunction
-
-function! s:is_dict_items(items) abort
-    return !empty(a:items) && type(a:items[0]) == type({})
-endfunction
-
-function! s:render_items(id) abort
-    if s:current > 0 && s:current == a:id
-        let picker = s:pickers[s:current]
-        let items = picker['items']
-        silent! %delete
-        if s:is_dict_items(items)
-            call setline(1, map(copy(items), 'v:val["label"]'))
-        else
-            call setline(1, items)
-        endif
-        let maxheight = 15
-        exe printf('resize %d', min([len(items), maxheight]))
-        call s:selection_change_hook()
-    endif
-endfunction
-
-function! s:create_buffer_if_not_exists() abort
-    if s:bufnr == -1
-        let picker = s:pickers[s:id]
-        exe printf('keepalt botright 1split %s', 'QuickPick')
-        let s:bufnr = bufnr('%')
-        call s:set_buffer_options()
-    else
-        exe printf('botright sbuffer %d', s:bufnr)
-        resize 1
-    endif
-endfunction
-
-function! s:split_input()
-    let left = s:pos == 0 ? '' : s:input[: s:pos-1]
-    let cursor = s:input[s:pos]
-    let right = s:input[s:pos+1 :]
-    return [left, cursor, right]
-endfunction
-
-function! s:render_prompt() abort
-    let [left, cursor, right] = s:split_input()
-    let picker = s:pickers[s:current]
-
-    echohl Comment
-    echon picker['prompt']
-
-    echohl None
-    echon left
-    echohl Underlined
-
-    echon cursor ==? '' ? ' ' : cursor
-    echohl None
-    echon right
-
-    redraw
-endfunction
-
-function! s:show_error(msg) abort
-    echom a:msg
-endfunction
-
-function! s:set_buffer_options() abort
-    setlocal filetype=quickpick
-    setlocal bufhidden=unload " unload buf when no longer displayed
-    setlocal buftype=nofile   " buffer is not related to any file<Paste>
-    setlocal noswapfile       " don't create a swapfile
-    setlocal nowrap           " don't soft-wrap
-    setlocal nonumber         " don't show line numbers
-    setlocal nolist           " don't use List mode (visible tabs etc)
-    setlocal foldcolumn=0     " don't show a fold column at side
-    setlocal foldlevel=99     " don't fold anything
-    setlocal nospell          " spell-checking off
-    setlocal nobuflisted      " don't show up in the buffer list
-    setlocal textwidth=0      " don't hard-wrap (break long lines)
-    setlocal cursorline       " highlight the line cursor is on
-    setlocal noundofile       " don't enable undo
-    if exists('+colorcolumn')
-        setlocal colorcolumn=0
-    endif
-    if exists('+relativenumber')
-        setlocal norelativenumber
-    endif
-
-    setlocal laststatus=2
-endfunction
-
-function! s:buf_leave() abort
-    if s:bufnr > 0
-        let picker = s:pickers[s:current]
-        call quickpick#hide(s:current)
-    endif
-endfunction
-
-function! s:map_keys() abort
-    " Basic keys that aren't customizable.
-    let lowercase = 'abcdefghijklmnopqrstuvwxyz'
-    let uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    let numbers = '0123456789'
-    let punctuation = "<>`@#~!\"$%&/()=+*-_.,;:?\\\'{}[] " " and space
-    for str in [lowercase, uppercase, numbers, punctuation]
-        for key in split(str, '\zs')
-            call s:map_key(printf('<Char-%d>', char2nr(key)), '<SID>handle_key', key)
-        endfor
+  " map keys
+  let l:lowercase = 'abcdefghijklmnopqrstuvwxyz'
+  let l:uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  let l:numbers = '0123456789'
+  let l:punctuation = "<>`@#~!\"$%&/()=+*-_.,;:?\\\'{}[] " " and space
+  for l:str in [l:lowercase, l:uppercase, l:numbers, l:punctuation]
+    for l:key in split(l:str, '\zs')
+      exec printf('noremap <silent> <buffer> <nowait> <char-%d> :call <SID>handle_key("%s")<cr>', char2nr(l:key), l:key)
     endfor
+  endfor
 
-    let s:mappings = {
-                \ '<Plug>(quickpick_accept)': '<SID>on_accept',
-                \ '<Plug>(quickpick_backspace)': '<SID>on_backspace',
-                \ '<Plug>(quickpick_delete)': '<SID>on_delete',
-                \ '<Plug>(quickpick_cancel)': '<SID>on_cancel',
-                \ '<Plug>(quickpick_move_next)': '<SID>on_move_next',
-                \ '<Plug>(quickpick_move_previous)': '<SID>on_move_previous',
-                \ }
-    for key in keys(s:mappings)
-        exec printf('noremap <silent> <buffer> %s :call %s(%s)<cr>', key, s:mappings[key], s:current)
-    endfor
+  " ex: <plug>(quickpick-accept)
+  let l:mappings = {
+    \ 'accept': '<SID>on_accept',
+    \ 'backspace': '<SID>on_backspace',
+    \ 'delete': '<SID>on_delete',
+    \ 'cancel': '<SID>on_cancel',
+    \ 'move-next': '<SID>on_move_next',
+    \ 'move-previous': '<SID>on_move_previous',
+    \ }
+  for l:key in keys(l:mappings)
+    exec printf('noremap <silent> <buffer> <plug>(%s%s) :call %s()<cr>', s:state['plug'], l:key, l:mappings[l:key])
+  endfor
+
+  call s:notify('open', { 'bufnr': s:state['bufnr'] })
+
+  call s:render_prompt(s:state)
 endfunction
 
-function! s:map_key(key, func_name, ...) abort
-    let args = empty(a:000) ? '' : string(join(a:000, ', '))
-    exec printf('noremap <silent> <buffer> <nowait> %s :call %s(%s)<cr>', a:key, a:func_name, args)
+function! quickpick#close() abort
+  if exists('s:state')
+    let l:bufnr = s:state['bufnr']
+    " clear prompt
+    redraw | echo
+    call s:notify('close', { 'bufnr': l:bufnr })
+    mapclear <buffer>
+    exe 'silent! bunload! ' . l:bufnr
+    unlet s:state
+  endif
+endfunction
+
+function! quickpick#items(items) abort
+  exec '1,$d'
+  let s:state['items'] = a:items
+  call setline(1, s:state['items'])
+  exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
+  call s:render_prompt(s:state)
+endfunction
+
+function! s:on_accept() abort
+  call s:notify('accept', { 'items': [line('.')] })
+endfunction
+
+function! s:on_backspace() abort
+  call s:prompt_ldelete(s:state)
+  call s:render_prompt(s:state)
+endfunction
+
+function! s:on_delete() abort
+  call s:render_prompt(s:state)
+endfunction
+
+function! s:on_cancel() abort
+  call quickpick#close()
+endfunction
+
+function! s:on_move_next() abort
+  normal! j
+  call s:notify('change', {})
+  call s:render_prompt(s:state)
+endfunction
+
+function! s:on_move_previous() abort
+  normal! k
+  call s:notify('change', {})
+  call s:render_prompt(s:state)
 endfunction
 
 function! s:handle_key(key) abort
-    let [left, cursor, right] = s:split_input()
-    let s:input = left . a:key . cursor . right
-    let s:pos += 1
-    call s:render_prompt()
-    call s:change_hook()
+    call s:prompt_insert(s:state, a:key)
+    call s:render_prompt(s:state)
 endfunction
 
-function! s:change_hook() abort
-	let picker = s:pickers[s:current]
-	if has_key(picker, 'on_change')
-		call picker['on_change'](s:current, 'change', s:input)
-	endif
+function! s:notify(name, data) abort
+  if has_key(s:state, 'on_event') | call s:state['on_event'](a:data, a:name) | endif
+  if has_key(s:state, 'on_' . a:name) | call s:state['on_' . a:name](a:data, a:name) | endif
 endfunction
 
-function! s:selection_change_hook() abort
-    let picker = s:pickers[s:current]
-    if has_key(picker, 'on_selection_change')
-        let selections = line('.') > len(picker['items']) ? [] : [line('.')]
-        let items = map(selections, 'picker["items"][v:val - 1]')
-        call picker['on_selection_change'](s:current, 'selection_change', { 'items': items })
-        redrawstatus
-        call s:render_prompt()
-    endif
+" ---- BEGIN PROMPT LOGIC -----
+
+" multi-byte character support substr
+function! s:substr(src, s, e) abort
+  let chars = split(a:src, '\zs')
+  return join(chars[a:s : a:e], '')
 endfunction
 
-function! s:handle_event(hook) abort
-    let picker = s:pickers[s:current]
-    exec printf('call <SID>%s()', a:hook)
-    if has_key(picker, a:hook)
-        call picker[a:hook](s:current)
-    endif
+function! s:cursor_ltext(state) abort
+  return a:state['cursor'] == 0 ? '' : s:substr(a:state['input'], 0, a:state['cursor'] - 1)
 endfunction
 
-function! s:on_backspace(id) abort
-    if s:pos > 1
-        let s:input = s:input[: s:pos-2] . s:input[s:pos :]
-    else
-        let s:input = s:input[s:pos :]
-    endif
-    let s:pos = s:pos == 0 ? 0 : s:pos-1
-    call s:render_prompt()
-    call s:change_hook()
+function! s:cursor_ctext(state) abort
+  return s:substr(a:state['input'], a:state['cursor'], a:state['cursor'])
 endfunction
 
-function! s:on_delete(id) abort
-    if s:pos < len(s:input)
-        let s:input = s:input[: s:pos-1] . s:input[s:pos+1 :]
-        cal s:render_prompt()
-        cal s:change_hook()
-    endif
+function! s:cursor_rtext(state) abort
+  return s:substr(a:state['input'], a:state['cursor'] + 1, - 1)
 endfunction
 
-function! s:on_accept(id) abort
-    let picker = s:pickers[a:id]
-    let selections = line('.') > len(picker['items']) ? [] : [line('.')]
-    if !empty(selections) || (empty(selections) && picker['accept_empty'])
-        let items = map(selections, 'picker["items"][v:val - 1]')
-        call picker['on_accept'](a:id, 'accept', {'items': items})
-    endif
+function! s:cursor_lshift(state, n) abort
+  let a:state['cursor'] -= a:n
+  let a:state['cursor'] = a:state['cursor'] <= 0 ? 0 : a:state['cursor']
 endfunction
 
-function! s:on_move_next(id) abort
-    normal! j
-    call s:selection_change_hook()
+function! s:cursor_rshift(state, n) abort
+  let l:threshold = strchars(a:state['input'])
+  let a:state['cursor'] += a:n
+  let a:state['cursor'] = a:state['cursor'] >= l:threshold ? l:threshold : a:state['cursor']
 endfunction
 
-function! s:on_move_previous(id) abort
-    normal! k
-    call s:selection_change_hook()
+function! s:prompt_home(state) abort
+  let a:state['cursor'] = 0
 endfunction
 
-function! s:on_cancel(id) abort
-    let picker = s:pickers[s:current]
-    call quickpick#close(a:id)
-    if has_key(picker, 'on_cancel')
-        call picker['on_cancel'](s:current, 'cancel', {})
-    endif
+function! s:prompt_end(state) abort
+  let a:state['cursor'] = strchars(a:state['input'])
 endfunction
 
-function! s:start_busy_timer(id) abort
-    if (s:pickers[a:id]['busy'])
-        if !has_key(s:busy_timers, a:id)
-            let s:busy_timers[a:id] = timer_start(80, function('s:busy_tick', [a:id]), { 'repeat': -1 })
-        endif
-    endif
+function! s:prompt_insert(state, newtext) abort
+  let l:lhs = s:cursor_ltext(a:state)
+  let l:rhs = s:cursor_ctext(a:state) . s:cursor_rtext(a:state)
+  let a:state['input'] = l:lhs . a:newtext . l:rhs
+  call s:cursor_rshift(a:state, strchars(a:newtext))
 endfunction
 
-function! s:busy_tick(id, ...) abort
-    let picker = s:pickers[a:id]
-    let picker['busy_current_frame'] = picker['busy_current_frame'] + 1
-    if picker['busy_current_frame'] >= len(picker['busy_frames'])
-        let picker['busy_current_frame'] = 0
-    endif
-    exe printf("let g:quickpick__busy_frame_%s='%s'", a:id, picker['busy_frames'][picker['busy_current_frame']])
-    redrawstatus
+function! s:prompt_ldelete(state) abort
+  let l:lhs = s:cursor_ltext(a:state)
+  if empty(l:lhs) | return | endif
+  let l:lhs = s:substr(l:lhs, 0, -2)
+  let l:rhs = s:cursor_ctext(a:state) . s:cursor_rtext(a:state)
+  let a:state['input'] = l:lhs . l:rhs
+  call s:cursor_lshift(a:state, 1)
 endfunction
 
-function! s:stop_busy_timer(id) abort
-    if has_key(s:busy_timers, a:id)
-        call timer_stop(s:busy_timers[a:id])
-        call remove(s:busy_timers, a:id)
-    endif
-    let s:pickers[a:id]['busy_current_frame'] = 0
-    exe printf('let g:quickpick__busy_frame_%s="%s"', a:id, ' ')
+function! s:prompt_replace(state, text) abort
+  let a:state['input'] = a:text
+  let a:state['cursor'] = strchars(a:text)
 endfunction
 
-augroup QuickPick
-    autocmd!
-    autocmd BufLeave QuickPick  silent! call s:buf_leave()
-augroup end
-" vim: set sw=4 ts=4 sts=4 et tw=78 foldmarker={{{,}}} foldmethod=marker spell:
+function! s:render_prompt(state) abort " state contains { 'cursor', 'input', 'prompt' }
+  redraw
+  echohl Question | echon a:state['prompt']
+  echohl None     | echon s:cursor_ltext(a:state)
+  echohl Cursor   | echon s:cursor_ctext(a:state) . ' '
+  echohl None     | echon s:cursor_rtext(a:state)
+endfunction
+
+" ---- END PROMPT LOGIC -----
