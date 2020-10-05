@@ -2,26 +2,94 @@ function! quickpick#open(opt) abort
   call quickpick#close() " hide existing picker if exists
 
   let s:state = extend({
-      \ 'prompt': '>>>',
+      \ 'prompt': '>',
       \ 'cursor': 0,
       \ 'items': [],
       \ 'busy': 0,
       \ 'busyframes': [ '-', '\', '|', '/' ],
       \ 'busycurrentframe': 0,
-      \ 'title': 'QuickPick',
       \ 'filetype': 'quickpick',
+      \ 'promptfiletype': 'quickpick-filter',
       \ 'plug': 'quickpick-',
       \ 'input': '',
       \ 'maxheight': 10,
       \ }, a:opt)
     
-  " create buffer
-  exe printf('keepalt botright 1new %s', s:state['title'])
+  " create result buffer
+  exe printf('keepalt botright 1new %s', s:state['filetype'])
   let s:state['bufnr'] = bufnr('%')
+  call s:set_buffer_options()
+  call setline(1, s:state['items'])
+  exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
+  setlocal cursorline
+  exec printf('setlocal filetype=' . s:state['filetype'])
 
+  exe printf('keepalt botright 1new %s', s:state['promptfiletype'])
+  let s:state['promptbufnr'] = bufnr('%')
+  call s:set_buffer_options()
+  call setline(1, s:state['input'])
+  resize 1
+  exec printf('setlocal filetype=' . s:state['promptfiletype'])
+
+  " map keys
+  inoremap <buffer><silent> <Plug>(quickpick-accept) <ESC>:<C-u>call <SID>on_accept()<CR>
+  nnoremap <buffer><silent> <Plug>(quickpick-accept) :<C-u>call <SID>on_accept()<CR>
+
+  inoremap <buffer><silent> <Plug>(quickpick-cancel) <ESC>:<C-u>call <SID>on_cancel()<CR>
+  nnoremap <buffer><silent> <Plug>(quickpick-cancel) :<C-u>call <SID>on_cancel()<CR>
+
+  inoremap <buffer><silent><expr> <Plug>(quickpick-backspace) col('.') == 1 ? "a\<BS>" : "\<BS>"
+
+
+  if !hasmapto('<Plug>(quickpick-accept)')
+    imap <buffer><cr> <Plug>(quickpick-accept)
+  endif
+
+  if !hasmapto('<Plug>(quickpick-cancel)')
+    imap <silent> <buffer> <C-c> <Plug>(quickpick-cancel)
+    map <silent> <buffer> <C-c> <Plug>(quickpick-cancel)
+    imap <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
+    map <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
+  endif
+
+  imap <buffer> <BS> <Plug>(quickpick-backspace)
+  imap <buffer> <C-h> <Plug>(quickpick-backspace)
+
+  call cursor(line('$'), 0)
+  startinsert!
+
+  " " map keys
+  " let l:lowercase = 'abcdefghijklmnopqrstuvwxyz'
+  " let l:uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  " let l:numbers = '0123456789'
+  " let l:punctuation = "<>`@#~!\"$%&/()=+*-_.,;:?\\\'{}[] " " and space
+  " for l:str in [l:lowercase, l:uppercase, l:numbers, l:punctuation]
+  "   for l:key in split(l:str, '\zs')
+  "     exec printf('noremap <silent> <buffer> <nowait> <char-%d> :call <SID>handle_key("%s")<cr>', char2nr(l:key), l:key)
+  "   endfor
+  " endfor
+
+  " " ex: <plug>(quickpick-accept)
+  " let l:mappings = {
+  "   \ 'accept': '<SID>on_accept',
+  "   \ 'backspace': '<SID>on_backspace',
+  "   \ 'delete': '<SID>on_delete',
+  "   \ 'cancel': '<SID>on_cancel',
+  "   \ 'move-next': '<SID>on_move_next',
+  "   \ 'move-previous': '<SID>on_move_previous',
+  "   \ }
+  " for l:key in keys(l:mappings)
+  "   exec printf('noremap <silent> <buffer> <plug>(%s%s) :call %s()<cr>', s:state['plug'], l:key, l:mappings[l:key])
+  " endfor
+
+  " call s:notify('open', { 'bufnr': s:state['bufnr'] })
+
+  " call s:render_prompt(s:state)
+endfunction
+
+function! s:set_buffer_options() abort
   " set buffer options
   abc <buffer>
-  exec printf('setlocal filetype=' . s:state['filetype'])
   setlocal bufhidden=unload           " unload buf when no longer displayed
   setlocal buftype=nofile             " buffer is not related to any file<Paste>
   setlocal noswapfile                 " don't create swap file
@@ -33,55 +101,25 @@ function! quickpick#open(opt) abort
   setlocal nospell                    " spell checking off
   setlocal nobuflisted                " don't show up in the buffer list
   setlocal textwidth=0                " don't hardwarp (break long lines)
-  setlocal cursorline                 " highlight the line cursor is on
+  setlocal nocursorline               " highlight the line cursor is off
   setlocal nocursorcolumn             " disable cursor column
   setlocal noundofile                 " don't enable undo
   setlocal winfixheight
   if exists('+colorcolumn') | setlocal colorcolumn=0 | endif
   if exists('+relativenumber') | setlocal norelativenumber | endif
-  setlocal laststatus=2
-
-  " set buf content and resize to best height
-  call setline(1, s:state['items'])
-  exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
-
-  " map keys
-  let l:lowercase = 'abcdefghijklmnopqrstuvwxyz'
-  let l:uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-  let l:numbers = '0123456789'
-  let l:punctuation = "<>`@#~!\"$%&/()=+*-_.,;:?\\\'{}[] " " and space
-  for l:str in [l:lowercase, l:uppercase, l:numbers, l:punctuation]
-    for l:key in split(l:str, '\zs')
-      exec printf('noremap <silent> <buffer> <nowait> <char-%d> :call <SID>handle_key("%s")<cr>', char2nr(l:key), l:key)
-    endfor
-  endfor
-
-  " ex: <plug>(quickpick-accept)
-  let l:mappings = {
-    \ 'accept': '<SID>on_accept',
-    \ 'backspace': '<SID>on_backspace',
-    \ 'delete': '<SID>on_delete',
-    \ 'cancel': '<SID>on_cancel',
-    \ 'move-next': '<SID>on_move_next',
-    \ 'move-previous': '<SID>on_move_previous',
-    \ }
-  for l:key in keys(l:mappings)
-    exec printf('noremap <silent> <buffer> <plug>(%s%s) :call %s()<cr>', s:state['plug'], l:key, l:mappings[l:key])
-  endfor
-
-  call s:notify('open', { 'bufnr': s:state['bufnr'] })
-
-  call s:render_prompt(s:state)
+  setlocal signcolumn=yes             " for prompt
 endfunction
 
 function! quickpick#close() abort
   if exists('s:state')
-    let l:bufnr = s:state['bufnr']
-    " clear prompt
-    redraw | echo
-    call s:notify('close', { 'bufnr': l:bufnr })
+    call s:notify('close', { 'bufnr': s:state['bufnr'] })
+
     mapclear <buffer>
-    exe 'silent! bunload! ' . l:bufnr
+    exe 'silent! bunload! ' . s:state['promptbufnr']
+
+    mapclear <buffer>
+    exe 'silent! bunload! ' . s:state['bufnr']
+
     unlet s:state
   endif
 endfunction
@@ -98,16 +136,12 @@ function! s:on_accept() abort
   call s:notify('accept', { 'items': [line('.')] })
 endfunction
 
-function! s:on_backspace() abort
-  call s:prompt_ldelete(s:state)
-  call s:render_prompt(s:state)
-endfunction
-
 function! s:on_delete() abort
   call s:render_prompt(s:state)
 endfunction
 
 function! s:on_cancel() abort
+  call s:notify('cancel', {})
   call quickpick#close()
 endfunction
 

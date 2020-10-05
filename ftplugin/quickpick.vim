@@ -1,6 +1,6 @@
-if !hasmapto('<Plug>(quickpick-accept)')
-  nmap <silent> <buffer> <CR> <Plug>(quickpick-accept)
-endif
+" if !hasmapto('<Plug>(quickpick-accept)')
+"   nmap <silent> <buffer> <CR> <Plug>(quickpick-accept)
+" endif
 
 if !hasmapto('<Plug>(quickpick-backspace)')
   nmap <silent> <buffer> <BS> <Plug>(quickpick-backspace)
@@ -9,11 +9,6 @@ endif
 if !hasmapto('<Plug>(quickpick-delete)')
   nmap <silent> <buffer> <Del> <Plug>(quickpick-delete)
   nmap <silent> <buffer> <Del> <Plug>(quickpick-delete)
-endif
-
-if !hasmapto('<Plug>(quickpick-cancel)')
-  nmap <silent> <buffer> <C-c> <Plug>(quickpick-cancel)
-  nmap <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
 endif
 
 if !hasmapto('<Plug>(quickpick-move-next)')
