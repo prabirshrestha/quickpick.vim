@@ -43,10 +43,17 @@ function! quickpick#open(opt) abort
   inoremap <buffer><silent> <Plug>(quickpick-cancel) <ESC>:<C-u>call <SID>on_cancel()<CR>
   nnoremap <buffer><silent> <Plug>(quickpick-cancel) :<C-u>call <SID>on_cancel()<CR>
 
+  inoremap <buffer><silent> <Plug>(quickpick-move-next) <ESC>:<C-u>call <SID>on_move_next()<CR>
+  nnoremap <buffer><silent> <Plug>(quickpick-move-next) :<C-u>call <SID>on_move_next()<CR>
+
+  inoremap <buffer><silent> <Plug>(quickpick-move-previous) <ESC>:<C-u>call <SID>on_move_previous()<CR>
+  nnoremap <buffer><silent> <Plug>(quickpick-move-previous) :<C-u>call <SID>on_move_previous()<CR>
+
   exec printf('setlocal filetype=' . s:state['promptfiletype'])
 
   if !hasmapto('<Plug>(quickpick-accept)')
     imap <buffer><cr> <Plug>(quickpick-accept)
+    nmap <buffer><cr> <Plug>(quickpick-accept)
   endif
 
   if !hasmapto('<Plug>(quickpick-cancel)')
@@ -54,6 +61,20 @@ function! quickpick#open(opt) abort
     map  <silent> <buffer> <C-c> <Plug>(quickpick-cancel)
     imap <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
     map  <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
+  endif
+
+  if !hasmapto('<Plug>(quickpick-move-next)')
+    imap <silent> <buffer> <C-n> <Plug>(quickpick-move-next)
+    nmap <silent> <buffer> <C-n> <Plug>(quickpick-move-next)
+    imap <silent> <buffer> <C-j> <Plug>(quickpick-move-next)
+    nmap <silent> <buffer> <C-j> <Plug>(quickpick-move-next)
+  endif
+
+  if !hasmapto('<Plug>(quickpick-move-previous)')
+    imap <silent> <buffer> <C-p> <Plug>(quickpick-move-previous)
+    nmap <silent> <buffer> <C-p> <Plug>(quickpick-move-previous)
+    imap <silent> <buffer> <C-p> <Plug>(quickpick-move-previous)
+    nmap <silent> <buffer> <C-k> <Plug>(quickpick-move-previous)
   endif
 
   call cursor(line('$'), 0)
@@ -123,12 +144,27 @@ function! quickpick#items(items) abort
 endfunction
 
 function! s:on_accept() abort
-  call s:notify('accept', { 'items': [getline('.')] })
+  let l:original_winid = win_getid()
+  if win_gotoid(s:state['winid'])
+    let l:line = getline('.')
+    call win_gotoid(l:original_winid)
+    call s:notify('accept', { 'items': [l:line] })
+  end
 endfunction
 
 function! s:on_cancel() abort
   call s:notify('cancel', {})
   call quickpick#close()
+endfunction
+
+function! s:on_move_next() abort
+  call s:win_execute(s:state['winid'], 'normal! j')
+  call s:notify('selection', {})
+endfunction
+
+function! s:on_move_previous() abort
+  call s:win_execute(s:state['winid'], 'normal! k')
+  call s:notify('selection', {})
 endfunction
 
 function! s:on_inputchanged() abort
