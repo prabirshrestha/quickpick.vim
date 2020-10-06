@@ -14,10 +14,13 @@ function! quickpick#open(opt) abort
       \ 'input': '',
       \ 'maxheight': 10,
       \ }, a:opt)
+
+  let s:inputecharpre = 0
     
   " create result buffer
   exe printf('keepalt botright 1new %s', s:state['filetype'])
   let s:state['bufnr'] = bufnr('%')
+  let s:state['winid'] = win_getid(s:state['bufnr'])
   call s:set_buffer_options()
   call setline(1, s:state['items'])
   exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
@@ -25,12 +28,13 @@ function! quickpick#open(opt) abort
   exec printf('setlocal filetype=' . s:state['filetype'])
   call s:notify('open', { 'bufnr': s:state['bufnr'] })
 
+  " create prompt buffer
   exe printf('keepalt botright 1new %s', s:state['promptfiletype'])
   let s:state['promptbufnr'] = bufnr('%')
+  let s:state['promptwinid'] = win_getid(s:state['promptbufnr'])
   call s:set_buffer_options()
   call setline(1, s:state['input'])
   resize 1
-  exec printf('setlocal filetype=' . s:state['promptfiletype'])
 
   " map keys
   inoremap <buffer><silent> <Plug>(quickpick-accept) <ESC>:<C-u>call <SID>on_accept()<CR>
@@ -39,7 +43,7 @@ function! quickpick#open(opt) abort
   inoremap <buffer><silent> <Plug>(quickpick-cancel) <ESC>:<C-u>call <SID>on_cancel()<CR>
   nnoremap <buffer><silent> <Plug>(quickpick-cancel) :<C-u>call <SID>on_cancel()<CR>
 
-  inoremap <buffer><silent><expr> <Plug>(quickpick-backspace) col('.') == 1 ? "a\<BS>" : "\<BS>"
+  exec printf('setlocal filetype=' . s:state['promptfiletype'])
 
   if !hasmapto('<Plug>(quickpick-accept)')
     imap <buffer><cr> <Plug>(quickpick-accept)
@@ -47,16 +51,24 @@ function! quickpick#open(opt) abort
 
   if !hasmapto('<Plug>(quickpick-cancel)')
     imap <silent> <buffer> <C-c> <Plug>(quickpick-cancel)
-    map <silent> <buffer> <C-c> <Plug>(quickpick-cancel)
+    map  <silent> <buffer> <C-c> <Plug>(quickpick-cancel)
     imap <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
-    map <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
+    map  <silent> <buffer> <Esc> <Plug>(quickpick-cancel)
   endif
-
-  imap <buffer> <BS> <Plug>(quickpick-backspace)
-  imap <buffer> <C-h> <Plug>(quickpick-backspace)
 
   call cursor(line('$'), 0)
   startinsert!
+
+  augroup quickpick
+    autocmd!
+    autocmd InsertCharPre <buffer> call s:on_insertcharpre()
+    autocmd TextChangedI <buffer> call s:on_inputchanged()
+    autocmd InsertEnter <buffer> call s:on_insertenter()
+
+    if exists('##TextChangedP')
+      autocmd TextChangedP <buffer> call s:on_inputchanged()
+    endif
+  augroup END
 endfunction
 
 function! s:set_buffer_options() abort
@@ -86,30 +98,32 @@ function! quickpick#close() abort
   if exists('s:state')
     call s:notify('close', { 'bufnr': s:state['bufnr'] })
 
+    augroup quickpick
+      autocmd!
+    augroup END
+
     mapclear <buffer>
     exe 'silent! bunload! ' . s:state['promptbufnr']
 
     mapclear <buffer>
     exe 'silent! bunload! ' . s:state['bufnr']
 
+    let s:inputecharpre = 0
+
     unlet s:state
   endif
 endfunction
 
 function! quickpick#items(items) abort
-  exec '1,$d'
   let s:state['items'] = a:items
-  call setline(1, s:state['items'])
-  exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
-  call s:render_prompt(s:state)
+  call win_execute(s:state['winid'], 'silent! %delete')
+  call setbufline(s:state['bufnr'], 1, s:state['items'])
+  call win_execute(s:state['winid'], printf('%d resize %d', s:state['bufnr'], min([len(s:state['items']), s:state['maxheight']])))
+  call s:notify('items', {})
 endfunction
 
 function! s:on_accept() abort
-  call s:notify('accept', { 'items': [line('.')] })
-endfunction
-
-function! s:on_delete() abort
-  call s:render_prompt(s:state)
+  call s:notify('accept', { 'items': [getline('.')] })
 endfunction
 
 function! s:on_cancel() abort
@@ -117,17 +131,20 @@ function! s:on_cancel() abort
   call quickpick#close()
 endfunction
 
-" function! s:on_move_next() abort
-"   normal! j
-"   call s:notify('change', {})
-"   call s:render_prompt(s:state)
-" endfunction
+function! s:on_inputchanged() abort
+  if s:inputecharpre
+    let s:state['input'] = getbufline(s:state['promptbufnr'], 1)[0]
+    call s:notify('change', { 'input': s:state['input'] })
+  endif
+endfunction
 
-" function! s:on_move_previous() abort
-"   normal! k
-"   call s:notify('change', {})
-"   call s:render_prompt(s:state)
-" endfunction
+function! s:on_insertcharpre() abort
+  let s:inputecharpre = 1
+endfunction
+
+function! s:on_insertenter() abort
+  let s:inputecharpre = 0
+endfunction
 
 function! s:notify(name, data) abort
   if has_key(s:state, 'on_event') | call s:state['on_event'](a:data, a:name) | endif
