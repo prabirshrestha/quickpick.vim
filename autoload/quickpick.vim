@@ -116,9 +116,9 @@ endfunction
 
 function! quickpick#items(items) abort
   let s:state['items'] = a:items
-  call win_execute(s:state['winid'], 'silent! %delete')
+  call s:win_execute(s:state['winid'], 'silent! %delete')
   call setbufline(s:state['bufnr'], 1, s:state['items'])
-  call win_execute(s:state['winid'], printf('%d resize %d', s:state['bufnr'], min([len(s:state['items']), s:state['maxheight']])))
+  call s:win_execute(s:state['winid'], printf('%d resize %d', s:state['bufnr'], min([len(s:state['items']), s:state['maxheight']])))
   call s:notify('items', {})
 endfunction
 
@@ -150,3 +150,21 @@ function! s:notify(name, data) abort
   if has_key(s:state, 'on_event') | call s:state['on_event'](a:data, a:name) | endif
   if has_key(s:state, 'on_' . a:name) | call s:state['on_' . a:name](a:data, a:name) | endif
 endfunction
+
+if exists('*win_execute')
+  function! s:win_execute(win_id, cmd) abort
+    call win_execute(a:win_id, a:cmd)
+  endfunction
+else
+  function! s:win_execute(winid, cmd) abort
+    let l:original_winid = win_getid()
+    if l:original_winid == a:winid
+      exec a:cmd
+    else
+      if win_gotoid(a:winid)
+        exec a:cmd
+        call win_gotoid(l:original_winid)
+      end
+    endif
+  endfunction
+endif
