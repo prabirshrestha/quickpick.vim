@@ -20,7 +20,7 @@ function! quickpick#open(opt) abort
   " create result buffer
   exe printf('keepalt botright 1new %s', s:state['filetype'])
   let s:state['bufnr'] = bufnr('%')
-  let s:state['winid'] = win_getid(s:state['bufnr'])
+  let s:state['winid'] = win_findbuf(s:state['bufnr'])[0]
   call s:set_buffer_options()
   call setline(1, s:state['items'])
   exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
@@ -31,7 +31,7 @@ function! quickpick#open(opt) abort
   " create prompt buffer
   exe printf('keepalt botright 1new %s', s:state['promptfiletype'])
   let s:state['promptbufnr'] = bufnr('%')
-  let s:state['promptwinid'] = win_getid(s:state['promptbufnr'])
+  let s:state['promptwinid'] = win_findbuf(s:state['promptbufnr'])[0]
   call s:set_buffer_options()
   call setline(1, s:state['input'])
   resize 1
@@ -139,7 +139,8 @@ function! quickpick#items(items) abort
   let s:state['items'] = a:items
   call s:win_execute(s:state['winid'], 'silent! %delete')
   call setbufline(s:state['bufnr'], 1, s:state['items'])
-  call s:win_execute(s:state['winid'], printf('%d resize %d', s:state['bufnr'], min([len(s:state['items']), s:state['maxheight']])))
+  call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['items']), s:state['maxheight']])))
+  call s:win_execute(s:state['promptwinid'], 'resize 1')
   call s:notify('items', {})
 endfunction
 
