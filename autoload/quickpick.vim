@@ -1,3 +1,5 @@
+let s:has_timer = exists('*timer_start') && exists('*timer_stop')
+
 function! quickpick#open(opt) abort
   call quickpick#close() " hide existing picker if exists
 
@@ -13,6 +15,7 @@ function! quickpick#open(opt) abort
       \ 'plug': 'quickpick-',
       \ 'input': '',
       \ 'maxheight': 10,
+      \ 'debounce': 250,
       \ }, a:opt)
 
   let s:inputecharpre = 0
@@ -85,6 +88,7 @@ function! quickpick#open(opt) abort
     autocmd InsertCharPre <buffer> call s:on_insertcharpre()
     autocmd TextChangedI <buffer> call s:on_inputchanged()
     autocmd InsertEnter <buffer> call s:on_insertenter()
+    autocmd InsertLeave <buffer> call s:on_insertleave()
 
     if exists('##TextChangedP')
       autocmd TextChangedP <buffer> call s:on_inputchanged()
@@ -170,8 +174,11 @@ endfunction
 
 function! s:on_inputchanged() abort
   if s:inputecharpre
-    let s:state['input'] = getbufline(s:state['promptbufnr'], 1)[0]
-    call s:notify('change', { 'input': s:state['input'] })
+    if s:has_timer && s:state['debounce'] > 0
+      call s:debounce_onchange()
+    else
+      call s:notify_onchange()
+    endif
   endif
 endfunction
 
@@ -181,6 +188,26 @@ endfunction
 
 function! s:on_insertenter() abort
   let s:inputecharpre = 0
+endfunction
+
+function! s:on_insertleave() abort
+  if s:has_timer && has_key(s:state, 'debounce_onchange_timer')
+    call timer_stop(s:state['debounce_onchange_timer'])
+    call remove(s:state, 'debounce_onchange_timer')
+  endif
+endfunction
+
+function! s:debounce_onchange() abort
+  if has_key(s:state, 'debounce_onchange_timer')
+    call timer_stop(s:state['debounce_onchange_timer'])
+    call remove(s:state, 'debounce_onchange_timer')
+  endif
+  let s:state['debounce_onchange_timer'] = timer_start(s:state['debounce'], function('s:notify_onchange'))
+endfunction
+
+function! s:notify_onchange(...) abort
+    let s:state['input'] = getbufline(s:state['promptbufnr'], 1)[0]
+    call s:notify('change', { 'input': s:state['input'] })
 endfunction
 
 function! s:notify(name, data) abort
