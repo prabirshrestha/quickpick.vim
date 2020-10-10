@@ -26,23 +26,32 @@ INSTALL                                                    *quickpick-install*
 ================================================================================
 EXAMPLE                                                    *quickpick-example*
 
-    let s:items = ['January', 'February', 'March', 'April', 'May', 'June',
-        \ 'July', 'August', 'September', 'October', 'November', 'December']
+let s:items = ["January","February","March","April","May","June","July","August","September","October","November","December"]
 
-    function! s:on_change(id, action, data) abort
-        let search_text = tolower(a:data)
-        let items = filter(copy(s:items), {index, item-> stridx(tolower(item), search_text) > -1})
-        call quickpick#set_items(a:id, items)
-    endfunction
+function! s:quickpick_months() abort
+  call quickpick#open({
+    \ 'items': s:items,
+    \ 'on_accept': function('s:on_accept'),
+    \ 'on_change': function('s:on_change'),
+    \})
+endfunction
 
-    function! s:on_accept(id, action, data) abort
-        call quickpick#close(a:id)
-        echo json_encode(a:data['items'])
-    endfunction
+function! s:on_accept(data, name) abort
+  call quickpick#close()
+  echom 'You selected: ' . json_encode(a:data['items'][0])
+endfunction
 
-    let id = quickpick#create({
-        \ 'on_change': function('s:on_change'),
-        \ 'on_accept': function('s:on_accept'),
-        \ 'items': copy(s:items)
-        \ })
-    call quickpick#show(id)
+function! s:on_change(data, name) abort
+  if empty(a:data['input'])
+    call quickpick#items(s:items)
+  else
+    if exists('*matchfuzzy')
+      let l:items = matchfuzzy(s:items, a:data['input'])
+    else
+      let l:items = filter(copy(s:items), 'stridx(toupper(v:val), toupper(a:data["input"])) >= 0')
+    endif
+    call quickpick#items(l:items)
+  endif
+endfunction
+
+command! Pmonth :call <SID>quickpick_months()
