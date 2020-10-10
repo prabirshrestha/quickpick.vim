@@ -16,28 +16,30 @@ function! quickpick#open(opt) abort
       \ 'input': '',
       \ 'maxheight': 10,
       \ 'debounce': 250,
+      \ 'filter': 1,
       \ }, a:opt)
-
   let s:inputecharpre = 0
     
   " create result buffer
   exe printf('keepalt botright 1new %s', s:state['filetype'])
   let s:state['bufnr'] = bufnr('%')
   let s:state['winid'] = win_findbuf(s:state['bufnr'])[0]
-  call s:set_buffer_options()
-  call setline(1, s:state['items'])
-  exe printf('resize %d', min([len(s:state['items']), s:state['maxheight']]))
-  setlocal cursorline
-  exec printf('setlocal filetype=' . s:state['filetype'])
-  call s:notify('open', { 'bufnr': s:state['bufnr'] })
 
   " create prompt buffer
   exe printf('keepalt botright 1new %s', s:state['promptfiletype'])
   let s:state['promptbufnr'] = bufnr('%')
   let s:state['promptwinid'] = win_findbuf(s:state['promptbufnr'])[0]
+
+  call win_gotoid(s:state['winid'])
+  call s:set_buffer_options()
+  setlocal cursorline
+  call s:update_items()
+  exec printf('setlocal filetype=' . s:state['filetype'])
+  call s:notify('open', { 'bufnr': s:state['bufnr'] })
+
+  call win_gotoid(s:state['promptwinid'])
   call s:set_buffer_options()
   call setline(1, s:state['input'])
-  resize 1
 
   " map keys
   inoremap <buffer><silent> <Plug>(quickpick-accept) <ESC>:<C-u>call <SID>on_accept()<CR>
@@ -141,11 +143,27 @@ endfunction
 
 function! quickpick#items(items) abort
   let s:state['items'] = a:items
-  call s:win_execute(s:state['winid'], 'silent! %delete')
-  call setbufline(s:state['bufnr'], 1, s:state['items'])
-  call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['items']), s:state['maxheight']])))
-  call s:win_execute(s:state['promptwinid'], 'resize 1')
+  call s:update_items()
   call s:notify('items', {})
+endfunction
+
+function! s:update_items() abort
+  call s:win_execute(s:state['winid'], 'silent! %delete')
+  if s:state['filter'] && !empty(trim(s:state['input']))
+    if exists('*matchfuzzy')
+      let s:state['filtered_items'] = matchfuzzy(s:state['items'], s:state['input'])
+    else
+      let l:items = filter(copy(s:state['items']), 'stridx(toupper(v:val), toupper(s:state["input"])) >= 0')
+    endif
+    call setbufline(s:state['bufnr'], 1, s:state['filtered_items'])
+    call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['filtered_items']), s:state['maxheight']])))
+  else
+    call setbufline(s:state['bufnr'], 1, s:state['items'])
+    call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['items']), s:state['maxheight']])))
+  endif
+  if has_key(s:state, 'promptwinid')
+    call s:win_execute(s:state['promptwinid'], 'resize 1')
+  endif
 endfunction
 
 function! s:on_accept() abort
@@ -207,6 +225,7 @@ endfunction
 
 function! s:notify_onchange(...) abort
     let s:state['input'] = getbufline(s:state['promptbufnr'], 1)[0]
+    call s:update_items()
     call s:notify('change', { 'input': s:state['input'] })
 endfunction
 

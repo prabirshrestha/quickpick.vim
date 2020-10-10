@@ -31,6 +31,8 @@ let s:items = ["January","February","March","April","May","June","July","August"
 function! s:quickpick_months() abort
   call quickpick#open({
     \ 'items': s:items,
+    \ 'filter': 0,
+    \ 'debounce': 0,
     \ 'on_accept': function('s:on_accept'),
     \ 'on_change': function('s:on_change'),
     \})
