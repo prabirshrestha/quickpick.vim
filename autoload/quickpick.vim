@@ -15,6 +15,7 @@ function! quickpick#open(opt) abort
       \ 'maxheight': 10,
       \ 'debounce': 250,
       \ 'filter': 1,
+      \ 'accept_empty': 0,
       \ }, a:opt)
   let s:inputecharpre = 0
     
@@ -176,6 +177,9 @@ function! s:on_accept() abort
   if win_gotoid(s:state['winid'])
     let l:line = getline('.')
     call win_gotoid(l:original_winid)
+    if empty(l:line) && !s:state['accept_empty']
+      return
+    endif
     call s:notify('accept', { 'items': [l:line] })
   end
 endfunction
