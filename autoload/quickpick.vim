@@ -182,7 +182,15 @@ function! s:update_items() abort
           let s:state['fitems'] = filter(copy(s:state['items']), 'stridx(toupper(v:val), toupper(s:state["input"])) >= 0')
         endif
       else " item is dict
-        let s:state['fitems'] = filter(copy(s:state['items']), 'stridx(toupper(v:val[s:state["key"]]), toupper(s:state["input"])) >= 0')
+        if s:has_matchfuzzypos
+          " vim requires matchfuzzypos to have highlights.
+          " matchfuzzy only patch doesn't support dict search
+          let [l:fitems, l:highlights] = matchfuzzypos(s:state['items'], s:state['input'], { 'key': s:state['key'] })
+          let s:state['fitems'] = l:fitems
+          let s:state['highlights'] = l:highlights
+        else
+          let s:state['fitems'] = filter(copy(s:state['items']), 'stridx(toupper(v:val[s:state["key"]]), toupper(s:state["input"])) >= 0')
+        endif
       endif
     endif
   else " if filter is disabled
