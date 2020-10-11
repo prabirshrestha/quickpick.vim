@@ -4,10 +4,12 @@ let s:has_matchfuzzy = exists('*matchfuzzy')
 function! quickpick#open(opt) abort
   call quickpick#close() " hide existing picker if exists
 
+  " when key is empty, item is a string else it is a dict
+  " fitems is filtered items and is the item that is filtered
   let s:state = extend({
-      \ 'prompt': '>',
-      \ 'cursor': 0,
       \ 'items': [],
+      \ 'fitems': [],
+      \ 'key': '',
       \ 'filetype': 'quickpick',
       \ 'promptfiletype': 'quickpick-filter',
       \ 'plug': 'quickpick-',
@@ -15,7 +17,6 @@ function! quickpick#open(opt) abort
       \ 'maxheight': 10,
       \ 'debounce': 250,
       \ 'filter': 1,
-      \ 'accept_empty': 0,
       \ }, a:opt)
   let s:inputecharpre = 0
     
@@ -157,30 +158,48 @@ endfunction
 
 function! s:update_items() abort
   call s:win_execute(s:state['winid'], 'silent! %delete')
-  if s:state['filter'] && !empty(trim(s:state['input']))
-    if s:has_matchfuzzy
-      let s:state['filtered_items'] = matchfuzzy(s:state['items'], s:state['input'])
+
+  if s:state['filter'] " if filter is enabled
+    if empty(s:trim(s:state['input']))
+      let s:state['fitems'] = s:state['items']
     else
-      let l:items = filter(copy(s:state['items']), 'stridx(toupper(v:val), toupper(s:state["input"])) >= 0')
+      if empty(s:state['key']) " item is string
+        if s:has_matchfuzzy
+          let s:state['fitems'] = matchfuzzy(s:state['items'], s:state['input'])
+        else
+          let s:state['fitems'] = filter(copy(s:state['items']), 'stridx(toupper(v:val), toupper(s:state["input"])) >= 0')
+        endif
+      else " item is dict
+        let s:state['fitems'] = filter(copy(s:state['items']), 'stridx(toupper(v:val[s:state["key"]]), toupper(s:state["input"])) >= 0')
+      endif
     endif
-    call setbufline(s:state['bufnr'], 1, s:state['filtered_items'])
-    call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['filtered_items']), s:state['maxheight']])))
-  else
-    call setbufline(s:state['bufnr'], 1, s:state['items'])
-    call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['items']), s:state['maxheight']])))
+  else " if filter is disabled
+    let s:state['fitems'] = s:state['items']
   endif
+
+  if empty(s:state['key']) " item is string
+    let l:lines = s:state['fitems']
+  else " item is dict
+    let l:lines = map(copy(s:state['fitems']), 'v:val[s:state["key"]]')
+  endif
+
+  call setbufline(s:state['bufnr'], 1, l:lines)
+
+  call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['fitems']), s:state['maxheight']])))
   call s:win_execute(s:state['promptwinid'], 'resize 1')
 endfunction
 
 function! s:on_accept() abort
   let l:original_winid = win_getid()
   if win_gotoid(s:state['winid'])
-    let l:line = getline('.')
-    call win_gotoid(l:original_winid)
-    if empty(l:line) && !s:state['accept_empty']
-      return
+    let l:index = line('.') - 1 " line is 1 index, list is 0 index
+    if l:index < 0
+      let l:items = []
+    else
+      let l:items = [s:state['fitems'][l:index]]
     endif
-    call s:notify('accept', { 'items': [l:line] })
+    call win_gotoid(l:original_winid)
+    call s:notify('accept', { 'items': l:items })
   end
 endfunction
 
@@ -200,15 +219,22 @@ function! s:on_move_previous() abort
 endfunction
 
 function! s:notify_items() abort
+  " items could be huge, so don't send the items as part of data
   call s:notify('items', { 'bufnr': s:state['bufnr'] })
 endfunction
 
 function! s:notify_selection() abort
   let l:original_winid = win_getid()
   call win_gotoid(s:state['winid'])
+  let l:index = line('.') - 1 " line is 1 based, list is 0 based
+  if l:index < 0
+    let l:items = []
+  else
+    let l:items = [s:state['fitems'][l:index]]
+  endif
   let l:data = {
     \ 'bufnr': s:state['bufnr'],
-    \ 'items': [getline('.')],
+    \ 'items': l:items,
     \ }
   call win_gotoid(l:original_winid)
   call s:notify('selection', l:data)
@@ -274,6 +300,16 @@ else
         call win_gotoid(l:original_winid)
       end
     endif
+  endfunction
+endif
+
+if exists('*trim')
+  function! s:trim(str) abort
+    return trim(a:str)
+  endfunction
+else
+  function! s:trim(str) abort
+    return substitute(a:string, '^\s*\|\s*$', '', 'g')
   endfunction
 endif
 
