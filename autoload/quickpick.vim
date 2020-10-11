@@ -13,6 +13,8 @@ function! quickpick#open(opt) abort
       \ 'highlights': [],
       \ 'fitems': [],
       \ 'key': '',
+      \ 'busy': 0,
+      \ 'busyframes': ['-', '\', '|', '/'],
       \ 'filetype': 'quickpick',
       \ 'promptfiletype': 'quickpick-filter',
       \ 'plug': 'quickpick-',
@@ -21,7 +23,9 @@ function! quickpick#open(opt) abort
       \ 'debounce': 250,
       \ 'filter': 1,
       \ }, a:opt)
+
   let s:inputecharpre = 0
+  let s:state['busyframe'] = 0
 
   " create result buffer
   exe printf('keepalt botright 1new %s', s:state['filetype'])
@@ -108,6 +112,7 @@ function! quickpick#open(opt) abort
 
   call s:notify_items()
   call s:notify_selection()
+  call quickpick#busy(s:state['busy'])
 endfunction
 
 function! s:set_buffer_options() abort
@@ -138,6 +143,8 @@ function! quickpick#close() abort
     return
   endif
 
+  call quickpick#busy(0)
+
   call s:notify('close', { 'bufnr': s:state['bufnr'] })
 
   augroup quickpick
@@ -160,6 +167,33 @@ function! quickpick#items(items) abort
   call s:update_items()
   call s:notify_items()
   call s:notify_selection()
+endfunction
+
+function! quickpick#busy(busy) abort
+  let s:state['busy'] = a:busy
+  if a:busy
+    if !has_key(s:state, 'busytimer')
+      let s:state['busyframe'] = 0
+      let s:state['busytimer'] = timer_start(60, function('s:busy_tick'), { 'repeat': -1 })
+    endif
+  else
+    if has_key(s:state, 'busytimer')
+      call timer_stop(s:state['busytimer'])
+      call remove(s:state, 'busytimer')
+      redraw
+      echo ''
+    endif
+  endif
+endfunction
+
+function! s:busy_tick(...) abort
+  let s:state['busyframe'] = s:state['busyframe'] + 1
+  if s:state['busyframe'] >= len(s:state['busyframes'])
+    let s:state['busyframe'] = 0
+  endif
+  redraw
+  echohl Question | echon s:state['busyframes'][s:state['busyframe']]
+  echohl None
 endfunction
 
 function! s:update_items() abort
