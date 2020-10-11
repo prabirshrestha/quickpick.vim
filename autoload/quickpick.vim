@@ -27,25 +27,28 @@ function! quickpick#open(opt) abort
   let s:inputecharpre = 0
   let s:state['busyframe'] = 0
 
+  let s:state['bufnr'] = bufnr('%')
+  let s:state['winid'] = win_getid()
+
   " create result buffer
   exe printf('keepalt botright 1new %s', s:state['filetype'])
-  let s:state['bufnr'] = bufnr('%')
-  let s:state['winid'] = win_findbuf(s:state['bufnr'])[0]
+  let s:state['resultsbufnr'] = bufnr('%')
+  let s:state['resultswinid'] = win_getid()
   if s:has_proptype
-    call prop_type_add('highlight', { 'highlight': 'Directory', 'bufnr': s:state['bufnr'] })
+    call prop_type_add('highlight', { 'highlight': 'Directory', 'bufnr': s:state['resultsbufnr'] })
   endif
 
   " create prompt buffer
   exe printf('keepalt botright 1new %s', s:state['promptfiletype'])
   let s:state['promptbufnr'] = bufnr('%')
-  let s:state['promptwinid'] = win_findbuf(s:state['promptbufnr'])[0]
+  let s:state['promptwinid'] = win_getid()
 
-  call win_gotoid(s:state['winid'])
+  call win_gotoid(s:state['resultswinid'])
   call s:set_buffer_options()
   setlocal cursorline
   call s:update_items()
   exec printf('setlocal filetype=' . s:state['filetype'])
-  call s:notify('open', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'] })
+  call s:notify('open', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'] , 'resultsbufnr': s:state['resultsbufnr'], 'resultswinid': s:state['resultswinid'] })
 
   call win_gotoid(s:state['promptwinid'])
   call s:set_buffer_options()
@@ -145,7 +148,8 @@ function! quickpick#close() abort
 
   call quickpick#busy(0)
 
-  call s:notify('close', { 'bufnr': s:state['bufnr'] })
+  call win_gotoid(s:state['bufnr'])
+  call s:notify('close', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'], 'resultsbufnr': s:state['resultsbufnr'], 'resultswinid': s:state['winid'] })
 
   augroup quickpick
     autocmd!
@@ -155,7 +159,7 @@ function! quickpick#close() abort
   exe 'silent! bunload! ' . s:state['promptbufnr']
 
   mapclear <buffer>
-  exe 'silent! bunload! ' . s:state['bufnr']
+  exe 'silent! bunload! ' . s:state['resultsbufnr']
 
   let s:inputecharpre = 0
 
@@ -181,6 +185,7 @@ function! quickpick#busy(busy) abort
       call timer_stop(s:state['busytimer'])
       call remove(s:state, 'busytimer')
       redraw
+      echohl None
       echo ''
     endif
   endif
@@ -197,7 +202,7 @@ function! s:busy_tick(...) abort
 endfunction
 
 function! s:update_items() abort
-  call s:win_execute(s:state['winid'], 'silent! %delete')
+  call s:win_execute(s:state['resultswinid'], 'silent! %delete')
 
   let s:state['highlights'] = []
 
@@ -238,59 +243,59 @@ function! s:update_items() abort
     let l:lines = map(copy(s:state['fitems']), 'v:val[s:state["key"]]')
   endif
 
-  call setbufline(s:state['bufnr'], 1, l:lines)
+  call setbufline(s:state['resultsbufnr'], 1, l:lines)
 
   if s:has_proptype && !empty(s:state['highlights'])
     let l:i = 0
     for l:line in s:state['highlights']
       for l:pos in l:line
-        call prop_add(l:i + 1, l:pos + 1, { 'length': 1, 'type': 'highlight', 'bufnr': s:state['bufnr'] })
+        call prop_add(l:i + 1, l:pos + 1, { 'length': 1, 'type': 'highlight', 'bufnr': s:state['resultsbufnr'] })
       endfor
       let l:i += 1
     endfor
   endif
 
-  call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['fitems']), s:state['maxheight']])))
+  call s:win_execute(s:state['resultswinid'], printf('resize %d', min([len(s:state['fitems']), s:state['maxheight']])))
   call s:win_execute(s:state['promptwinid'], 'resize 1')
 endfunction
 
 function! s:on_accept() abort
-  let l:original_winid = win_getid()
-  if win_gotoid(s:state['winid'])
+  if win_gotoid(s:state['resultswinid'])
     let l:index = line('.') - 1 " line is 1 index, list is 0 index
     if l:index < 0
       let l:items = []
     else
       let l:items = [s:state['fitems'][l:index]]
     endif
-    call win_gotoid(l:original_winid)
+    call win_gotoid(s:state['winid'])
     call s:notify('accept', { 'items': l:items })
   end
 endfunction
 
 function! s:on_cancel() abort
+  call win_gotoid(s:state['winid'])
   call s:notify('cancel', {})
   call quickpick#close()
 endfunction
 
 function! s:on_move_next() abort
-  call s:win_execute(s:state['winid'], 'normal! j')
+  call s:win_execute(s:state['resultswinid'], 'normal! j')
   call s:notify_selection()
 endfunction
 
 function! s:on_move_previous() abort
-  call s:win_execute(s:state['winid'], 'normal! k')
+  call s:win_execute(s:state['resultswinid'], 'normal! k')
   call s:notify_selection()
 endfunction
 
 function! s:notify_items() abort
   " items could be huge, so don't send the items as part of data
-  call s:notify('items', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'] })
+  call s:notify('items', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'], 'resultsbufnr': s:state['resultsbufnr'], 'resultswinid': s:state['resultswinid'] })
 endfunction
 
 function! s:notify_selection() abort
   let l:original_winid = win_getid()
-  call win_gotoid(s:state['winid'])
+  call win_gotoid(s:state['resultswinid'])
   let l:index = line('.') - 1 " line is 1 based, list is 0 based
   if l:index < 0 || ((l:index + 1) > len(s:state['fitems']))
     let l:items = []
@@ -300,10 +305,13 @@ function! s:notify_selection() abort
   let l:data = {
     \ 'bufnr': s:state['bufnr'],
     \ 'winid': s:state['winid'],
+    \ 'resultsbufnr': s:state['resultsbufnr'],
+    \ 'resultswinid': s:state['resultswinid'],
     \ 'items': l:items,
     \ }
-  call win_gotoid(l:original_winid)
+  call win_gotoid(s:state['winid'])
   call s:notify('selection', l:data)
+  call win_gotoid(l:original_winid)
 endfunction
 
 function! s:on_inputchanged() abort
