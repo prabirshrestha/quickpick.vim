@@ -14,10 +14,6 @@ INTRODUCTION                                           *quickpick-introduction*
 
 A UI for Vim to let the user pick an item from a list.
 
-This repo is heavily based of https://github.com/torbiak/probe without which
-quickpick.vim wouldn't be possible. The api's are influenced by VS Code apis -
-https://code.visualstudio.com/api/references/vscode-api#QuickPick.
-
 ================================================================================
 INSTALL                                                    *quickpick-install*
 
