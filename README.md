@@ -1,9 +1,6 @@
 # quickpick.vim
 A UI for Vim to let the user pick an item from a list similar to [CtrlP](https://github.com/ctrlpvim/ctrlp.vim).
 
-This repo is heavily based of [probe](https://github.com/torbiak/probe) without which quickpick.vim wouldn't be possible.
-The api's are influenced by [VSCode QuickPick api](https://code.visualstudio.com/api/references/vscode-api#QuickPick).
-
 ![NPM Picker](https://user-images.githubusercontent.com/287744/50551057-55441700-0c30-11e9-8842-d79182cdcaf0.gif)
 
 ![Colorscheme Picker](https://user-images.githubusercontent.com/287744/72764564-9c83a980-3b9d-11ea-8135-3daf7bf380d9.gif)
