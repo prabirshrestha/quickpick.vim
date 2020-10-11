@@ -1,5 +1,7 @@
 let s:has_timer = exists('*timer_start') && exists('*timer_stop')
 let s:has_matchfuzzy = exists('*matchfuzzy')
+let s:has_matchfuzzypos = exists('*matchfuzzypos')
+let s:has_proptype = exists('*prop_type_add') && exists('*prop_type_delete')
 
 function! quickpick#open(opt) abort
   call quickpick#close() " hide existing picker if exists
@@ -8,6 +10,7 @@ function! quickpick#open(opt) abort
   " fitems is filtered items and is the item that is filtered
   let s:state = extend({
       \ 'items': [],
+      \ 'highlights': [],
       \ 'fitems': [],
       \ 'key': '',
       \ 'filetype': 'quickpick',
@@ -19,11 +22,14 @@ function! quickpick#open(opt) abort
       \ 'filter': 1,
       \ }, a:opt)
   let s:inputecharpre = 0
-    
+
   " create result buffer
   exe printf('keepalt botright 1new %s', s:state['filetype'])
   let s:state['bufnr'] = bufnr('%')
   let s:state['winid'] = win_findbuf(s:state['bufnr'])[0]
+  if s:has_proptype
+    call prop_type_add('highlight', { 'highlight': 'Directory', 'bufnr': s:state['bufnr'] })
+  endif
 
   " create prompt buffer
   exe printf('keepalt botright 1new %s', s:state['promptfiletype'])
@@ -159,12 +165,18 @@ endfunction
 function! s:update_items() abort
   call s:win_execute(s:state['winid'], 'silent! %delete')
 
+  let s:state['highlights'] = []
+
   if s:state['filter'] " if filter is enabled
     if empty(s:trim(s:state['input']))
       let s:state['fitems'] = s:state['items']
     else
       if empty(s:state['key']) " item is string
-        if s:has_matchfuzzy
+        if s:has_matchfuzzypos
+          let [l:fitems, l:highlights] = matchfuzzypos(s:state['items'], s:state['input'])
+          let s:state['fitems'] = l:fitems
+          let s:state['highlights'] = l:highlights
+        elseif s:has_matchfuzzy
           let s:state['fitems'] = matchfuzzy(s:state['items'], s:state['input'])
         else
           let s:state['fitems'] = filter(copy(s:state['items']), 'stridx(toupper(v:val), toupper(s:state["input"])) >= 0')
@@ -177,6 +189,7 @@ function! s:update_items() abort
     let s:state['fitems'] = s:state['items']
   endif
 
+
   if empty(s:state['key']) " item is string
     let l:lines = s:state['fitems']
   else " item is dict
@@ -184,6 +197,16 @@ function! s:update_items() abort
   endif
 
   call setbufline(s:state['bufnr'], 1, l:lines)
+
+  if s:has_proptype && !empty(s:state['highlights'])
+    let l:i = 0
+    for l:line in s:state['highlights']
+      for l:pos in l:line
+        call prop_add(l:i + 1, l:pos + 1, { 'length': 1, 'type': 'highlight', 'bufnr': s:state['bufnr'] })
+      endfor
+      let l:i += 1
+    endfor
+  endif
 
   call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['fitems']), s:state['maxheight']])))
   call s:win_execute(s:state['promptwinid'], 'resize 1')
