@@ -16,6 +16,7 @@ quickpick.vim deliberately does not contain any sources as this allows the core 
 |-------------------------------|----------------------------------------------------------------------------------------------------|
 | Colorschemes                  | [quickpick-colorschemes.vim](https://github.com/prabirshrestha/quickpick-colorschemes.vim)         |
 | Filetypes                     | [quickpick-filetypes.vim](https://github.com/prabirshrestha/quickpick-filetypes.vim)               |
+| vim-lsp                       | [quickpick-lsp.vim](https://github.com/prabirshrestha/quickpick-lsp.vim)                           |
 | NPM                           | [quickpick-npm.vim](https://github.com/prabirshrestha/quickpick-npm.vim)                           |
 
 Can't find what you are looking for? Write one instead an send a PR to be included here or search github topics tagged with `quickpickvim` at https://github.com/topics/quickpickvim.
