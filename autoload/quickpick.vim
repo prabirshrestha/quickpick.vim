@@ -45,7 +45,7 @@ function! quickpick#open(opt) abort
   setlocal cursorline
   call s:update_items()
   exec printf('setlocal filetype=' . s:state['filetype'])
-  call s:notify('open', { 'bufnr': s:state['bufnr'] })
+  call s:notify('open', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'] })
 
   call win_gotoid(s:state['promptwinid'])
   call s:set_buffer_options()
@@ -285,7 +285,7 @@ endfunction
 
 function! s:notify_items() abort
   " items could be huge, so don't send the items as part of data
-  call s:notify('items', { 'bufnr': s:state['bufnr'] })
+  call s:notify('items', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'] })
 endfunction
 
 function! s:notify_selection() abort
@@ -299,6 +299,7 @@ function! s:notify_selection() abort
   endif
   let l:data = {
     \ 'bufnr': s:state['bufnr'],
+    \ 'winid': s:state['winid'],
     \ 'items': l:items,
     \ }
   call win_gotoid(l:original_winid)
