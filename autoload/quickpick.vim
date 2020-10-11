@@ -276,8 +276,10 @@ endfunction
 function! s:notify_onchange(...) abort
     let s:state['input'] = getbufline(s:state['promptbufnr'], 1)[0]
     call s:notify('change', { 'input': s:state['input'] })
-    call s:update_items()
-    call s:notify_selection()
+    if !s:state['filter']
+      call s:update_items()
+      call s:notify_selection()
+    endif
 endfunction
 
 function! s:notify(name, data) abort
