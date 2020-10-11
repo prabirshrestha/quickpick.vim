@@ -250,7 +250,7 @@ function! s:notify_selection() abort
   let l:original_winid = win_getid()
   call win_gotoid(s:state['winid'])
   let l:index = line('.') - 1 " line is 1 based, list is 0 based
-  if l:index < 0
+  if l:index < 0 || ((l:index + 1) > len(s:state['fitems']))
     let l:items = []
   else
     let l:items = [s:state['fitems'][l:index]]
