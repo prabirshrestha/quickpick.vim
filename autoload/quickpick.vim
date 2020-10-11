@@ -1,4 +1,5 @@
 let s:has_timer = exists('*timer_start') && exists('*timer_stop')
+let s:has_matchfuzzy = exists('*matchfuzzy')
 
 function! quickpick#open(opt) abort
   call quickpick#close() " hide existing picker if exists
@@ -7,9 +8,6 @@ function! quickpick#open(opt) abort
       \ 'prompt': '>',
       \ 'cursor': 0,
       \ 'items': [],
-      \ 'busy': 0,
-      \ 'busyframes': [ '-', '\', '|', '/' ],
-      \ 'busycurrentframe': 0,
       \ 'filetype': 'quickpick',
       \ 'promptfiletype': 'quickpick-filter',
       \ 'plug': 'quickpick-',
@@ -44,6 +42,9 @@ function! quickpick#open(opt) abort
   " map keys
   inoremap <buffer><silent> <Plug>(quickpick-accept) <ESC>:<C-u>call <SID>on_accept()<CR>
   nnoremap <buffer><silent> <Plug>(quickpick-accept) :<C-u>call <SID>on_accept()<CR>
+
+  inoremap <buffer><silent> <Plug>(quickpick-close) <ESC>:<C-u>call quickpick#close()<CR>
+  nnoremap <buffer><silent> <Plug>(quickpick-close) :<C-u>call quickpick#close()<CR>
 
   inoremap <buffer><silent> <Plug>(quickpick-cancel) <ESC>:<C-u>call <SID>on_cancel()<CR>
   nnoremap <buffer><silent> <Plug>(quickpick-cancel) :<C-u>call <SID>on_cancel()<CR>
@@ -87,15 +88,18 @@ function! quickpick#open(opt) abort
 
   augroup quickpick
     autocmd!
-    autocmd InsertCharPre <buffer> call s:on_insertcharpre()
-    autocmd TextChangedI <buffer> call s:on_inputchanged()
-    autocmd InsertEnter <buffer> call s:on_insertenter()
-    autocmd InsertLeave <buffer> call s:on_insertleave()
+    autocmd InsertCharPre   <buffer> call s:on_insertcharpre()
+    autocmd TextChangedI    <buffer> call s:on_inputchanged()
+    autocmd InsertEnter     <buffer> call s:on_insertenter()
+    autocmd InsertLeave     <buffer> call s:on_insertleave()
 
     if exists('##TextChangedP')
-      autocmd TextChangedP <buffer> call s:on_inputchanged()
+      autocmd TextChangedP  <buffer> call s:on_inputchanged()
     endif
   augroup END
+
+  call s:notify_items()
+  call s:notify_selection()
 endfunction
 
 function! s:set_buffer_options() abort
@@ -122,35 +126,38 @@ function! s:set_buffer_options() abort
 endfunction
 
 function! quickpick#close() abort
-  if exists('s:state')
-    call s:notify('close', { 'bufnr': s:state['bufnr'] })
-
-    augroup quickpick
-      autocmd!
-    augroup END
-
-    mapclear <buffer>
-    exe 'silent! bunload! ' . s:state['promptbufnr']
-
-    mapclear <buffer>
-    exe 'silent! bunload! ' . s:state['bufnr']
-
-    let s:inputecharpre = 0
-
-    unlet s:state
+  if !exists('s:state')
+    return
   endif
+
+  call s:notify('close', { 'bufnr': s:state['bufnr'] })
+
+  augroup quickpick
+    autocmd!
+  augroup END
+
+  mapclear <buffer>
+  exe 'silent! bunload! ' . s:state['promptbufnr']
+
+  mapclear <buffer>
+  exe 'silent! bunload! ' . s:state['bufnr']
+
+  let s:inputecharpre = 0
+
+  unlet s:state
 endfunction
 
 function! quickpick#items(items) abort
   let s:state['items'] = a:items
   call s:update_items()
-  call s:notify('items', {})
+  call s:notify_items()
+  call s:notify_selection()
 endfunction
 
 function! s:update_items() abort
   call s:win_execute(s:state['winid'], 'silent! %delete')
   if s:state['filter'] && !empty(trim(s:state['input']))
-    if exists('*matchfuzzy')
+    if s:has_matchfuzzy
       let s:state['filtered_items'] = matchfuzzy(s:state['items'], s:state['input'])
     else
       let l:items = filter(copy(s:state['items']), 'stridx(toupper(v:val), toupper(s:state["input"])) >= 0')
@@ -161,9 +168,7 @@ function! s:update_items() abort
     call setbufline(s:state['bufnr'], 1, s:state['items'])
     call s:win_execute(s:state['winid'], printf('resize %d', min([len(s:state['items']), s:state['maxheight']])))
   endif
-  if has_key(s:state, 'promptwinid')
-    call s:win_execute(s:state['promptwinid'], 'resize 1')
-  endif
+  call s:win_execute(s:state['promptwinid'], 'resize 1')
 endfunction
 
 function! s:on_accept() abort
@@ -182,12 +187,27 @@ endfunction
 
 function! s:on_move_next() abort
   call s:win_execute(s:state['winid'], 'normal! j')
-  call s:notify('selection', {})
+  call s:notify_selection()
 endfunction
 
 function! s:on_move_previous() abort
   call s:win_execute(s:state['winid'], 'normal! k')
-  call s:notify('selection', {})
+  call s:notify_selection()
+endfunction
+
+function! s:notify_items() abort
+  call s:notify('items', { 'bufnr': s:state['bufnr'] })
+endfunction
+
+function! s:notify_selection() abort
+  let l:original_winid = win_getid()
+  call win_gotoid(s:state['winid'])
+  let l:data = {
+    \ 'bufnr': s:state['bufnr'],
+    \ 'items': [getline('.')],
+    \ }
+  call win_gotoid(l:original_winid)
+  call s:notify('selection', l:data)
 endfunction
 
 function! s:on_inputchanged() abort
@@ -225,8 +245,9 @@ endfunction
 
 function! s:notify_onchange(...) abort
     let s:state['input'] = getbufline(s:state['promptbufnr'], 1)[0]
-    call s:update_items()
     call s:notify('change', { 'input': s:state['input'] })
+    call s:update_items()
+    call s:notify_selection()
 endfunction
 
 function! s:notify(name, data) abort
