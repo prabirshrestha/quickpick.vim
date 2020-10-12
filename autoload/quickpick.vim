@@ -64,11 +64,11 @@ function! quickpick#open(opt) abort
   inoremap <buffer><silent> <Plug>(quickpick-cancel) <ESC>:<C-u>call <SID>on_cancel()<CR>
   nnoremap <buffer><silent> <Plug>(quickpick-cancel) :<C-u>call <SID>on_cancel()<CR>
 
-  inoremap <buffer><silent> <Plug>(quickpick-move-next) <ESC>:<C-u>call <SID>on_move_next()<CR>
-  nnoremap <buffer><silent> <Plug>(quickpick-move-next) :<C-u>call <SID>on_move_next()<CR>
+  inoremap <buffer><silent> <Plug>(quickpick-move-next) <ESC>:<C-u>call <SID>on_move_next(1)<CR>
+  nnoremap <buffer><silent> <Plug>(quickpick-move-next) :<C-u>call <SID>on_move_next(0)<CR>
 
-  inoremap <buffer><silent> <Plug>(quickpick-move-previous) <ESC>:<C-u>call <SID>on_move_previous()<CR>
-  nnoremap <buffer><silent> <Plug>(quickpick-move-previous) :<C-u>call <SID>on_move_previous()<CR>
+  inoremap <buffer><silent> <Plug>(quickpick-move-previous) <ESC>:<C-u>call <SID>on_move_previous(1)<CR>
+  nnoremap <buffer><silent> <Plug>(quickpick-move-previous) :<C-u>call <SID>on_move_previous(0)<CR>
 
   exec printf('setlocal filetype=' . s:state['promptfiletype'])
 
@@ -94,7 +94,7 @@ function! quickpick#open(opt) abort
   if !hasmapto('<Plug>(quickpick-move-previous)')
     imap <silent> <buffer> <C-p> <Plug>(quickpick-move-previous)
     nmap <silent> <buffer> <C-p> <Plug>(quickpick-move-previous)
-    imap <silent> <buffer> <C-p> <Plug>(quickpick-move-previous)
+    imap <silent> <buffer> <C-k> <Plug>(quickpick-move-previous)
     nmap <silent> <buffer> <C-k> <Plug>(quickpick-move-previous)
   endif
 
@@ -278,13 +278,21 @@ function! s:on_cancel() abort
   call quickpick#close()
 endfunction
 
-function! s:on_move_next() abort
+function! s:on_move_next(insertmode) abort
+  let l:col = col('.')
   call s:win_execute(s:state['resultswinid'], 'normal! j')
+  if a:insertmode
+    call s:win_execute(s:state['promptwinid'], 'startinsert | call setpos(".", [0, 1, ' . (l:col + 1) .', 1])')
+  endif
   call s:notify_selection()
 endfunction
 
-function! s:on_move_previous() abort
+function! s:on_move_previous(insertmode) abort
+  let l:col = col('.')
   call s:win_execute(s:state['resultswinid'], 'normal! k')
+  if a:insertmode
+    call s:win_execute(s:state['promptwinid'], 'startinsert | call setpos(".", [0, 1, ' . (l:col + 1) .', 1])')
+  endif
   call s:notify_selection()
 endfunction
 
