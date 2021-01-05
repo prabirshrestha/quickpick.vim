@@ -98,7 +98,7 @@ function! quickpick#open(opt) abort
   endif
 
   call cursor(line('$'), 0)
-  startinsert!
+  call feedkeys('i', 'n')
 
   augroup quickpick
     autocmd!
