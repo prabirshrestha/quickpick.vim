@@ -21,6 +21,14 @@ quickpick.vim deliberately does not contain any sources as this allows the core 
 
 Can't find what you are looking for? Write one instead an send a PR to be included here or search github topics tagged with `quickpickvim` at https://github.com/topics/quickpickvim.
 
+# Embedding
+
+```vim
+:QuickpickEmbed path=./autoload/myplugin/quickpick.vim namespace=myplugin#quickpick prefix=myplugin-quickfix
+```
+
+This can then be referenced using `myplugin#quickpick#open()`
+
 # Roadmap
 
 It is very much work in progress so features are currently limited. The goal is the provide the best apis and be the ultimiate picker UI for me that works on both vim8 and neovim and is very fast, non-blocking and allows me to replace [CtrlP](https://github.com/ctrlpvim/ctrlp.vim), [vim-fz](https://github.com/mattn/vim-fz) and [fzf](https://github.com/junegunn/fzf). Refer to https://github.com/prabirshrestha/quickpick.vim/issues/1 for more details.

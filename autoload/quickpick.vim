@@ -17,7 +17,6 @@ function! quickpick#open(opt) abort
       \ 'busyframes': ['-', '\', '|', '/'],
       \ 'filetype': 'quickpick',
       \ 'promptfiletype': 'quickpick-filter',
-      \ 'plug': 'quickpick-',
       \ 'input': '',
       \ 'maxheight': 10,
       \ 'debounce': 250,
