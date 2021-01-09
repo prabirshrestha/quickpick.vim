@@ -154,10 +154,7 @@ function! quickpick#close() abort
     autocmd!
   augroup END
 
-  mapclear <buffer>
   exe 'silent! bunload! ' . s:state['promptbufnr']
-
-  mapclear <buffer>
   exe 'silent! bunload! ' . s:state['resultsbufnr']
 
   let s:inputecharpre = 0
