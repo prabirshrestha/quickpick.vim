@@ -208,7 +208,9 @@ function! s:update_items() abort
     else
       if empty(s:state['key']) " item is string
         if s:has_matchfuzzypos
-          let [l:fitems, l:highlights] = matchfuzzypos(s:state['items'], s:state['input'])
+          let l:matchfuzzyresult = matchfuzzypos(s:state['items'], s:state['input'])
+          let l:fitems = l:matchfuzzyresult[0]
+          let l:highlights = l:matchfuzzyresult[1]
           let s:state['fitems'] = l:fitems
           let s:state['highlights'] = l:highlights
         elseif s:has_matchfuzzy
@@ -220,7 +222,9 @@ function! s:update_items() abort
         if s:has_matchfuzzypos
           " vim requires matchfuzzypos to have highlights.
           " matchfuzzy only patch doesn't support dict search
-          let [l:fitems, l:highlights] = matchfuzzypos(s:state['items'], s:state['input'], { 'key': s:state['key'] })
+          let l:matchfuzzyresult = matchfuzzypos(s:state['items'], s:state['input'], { 'key': s:state['key'] })
+          let l:fitems = l:matchfuzzyresult[0]
+          let l:highlights = l:matchfuzzyresult[1]
           let s:state['fitems'] = l:fitems
           let s:state['highlights'] = l:highlights
         else
