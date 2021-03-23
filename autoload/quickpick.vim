@@ -21,6 +21,7 @@ function! quickpick#open(opt) abort
       \ 'maxheight': 10,
       \ 'debounce': 250,
       \ 'filter': 1,
+      \ 'wrap': 0,
       \ }, a:opt)
 
   let s:inputecharpre = 0
@@ -284,7 +285,19 @@ endfunction
 
 function! s:on_move_next(insertmode) abort
   let l:col = col('.')
-  call s:win_execute(s:state['resultswinid'], 'normal! j')
+  if s:state['wrap']
+    if has('nvim')
+      let l:cur_line = nvim_win_get_cursor(s:state['resultswinid'])[0]
+      let l:end_line = nvim_buf_line_count(s:state['resultsbufnr'])
+    else
+      let l:cur_line = line('.', s:state['resultswinid'])
+      let l:end_line = line('$', s:state['resultswinid'])
+    endif
+    let l:cmd = l:cur_line == l:end_line ? 'gg' : 'j'
+  else
+    let l:cmd = 'j'
+  endif
+  call s:win_execute(s:state['resultswinid'], 'normal! ' . l:cmd)
   if a:insertmode
     call s:win_execute(s:state['promptwinid'], 'startinsert | call setpos(".", [0, 1, ' . (l:col + 1) .', 1])')
   endif
@@ -293,7 +306,17 @@ endfunction
 
 function! s:on_move_previous(insertmode) abort
   let l:col = col('.')
-  call s:win_execute(s:state['resultswinid'], 'normal! k')
+  if s:state['wrap']
+    if has('nvim')
+      let l:cur_line = nvim_win_get_cursor(s:state['resultswinid'])[0]
+    else
+      let l:cur_line = line('.', s:state['resultswinid'])
+    endif
+    let l:cmd = l:cur_line == 1 ? 'G' : 'k'
+  else
+    let l:cmd = 'k'
+  endif
+  call s:win_execute(s:state['resultswinid'], 'normal! ' . l:cmd)
   if a:insertmode
     call s:win_execute(s:state['promptwinid'], 'startinsert | call setpos(".", [0, 1, ' . (l:col + 1) .', 1])')
   endif
