@@ -397,7 +397,7 @@ if exists('*trim')
   endfunction
 else
   function! s:trim(str) abort
-    return substitute(a:string, '^\s*\|\s*$', '', 'g')
+    return substitute(a:str, '^\s*\|\s*$', '', 'g')
   endfunction
 endif
 
