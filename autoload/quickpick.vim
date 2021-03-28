@@ -187,6 +187,14 @@ function! quickpick#busy(busy) abort
   endif
 endfunction
 
+function! quickpick#results_winid() abort
+  if exists('s:state')
+    return s:state['resultswinid']
+  else
+    return 0
+  endif
+endfunction
+
 function! s:busy_tick(...) abort
   let s:state['busyframe'] = s:state['busyframe'] + 1
   if s:state['busyframe'] >= len(s:state['busyframes'])
