@@ -188,7 +188,11 @@ function! quickpick#busy(busy) abort
 endfunction
 
 function! quickpick#results_winid() abort
-  return s:state['resultswinid']
+  if exists('s:state')
+    return s:state['resultswinid']
+  else
+    return 0
+  endif
 endfunction
 
 function! s:busy_tick(...) abort
