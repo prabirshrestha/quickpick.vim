@@ -323,9 +323,9 @@ function! s:notify_selection() abort
     \ 'resultswinid': s:state['resultswinid'],
     \ 'items': l:items,
     \ }
-  call win_gotoid(s:state['winid'])
+  noautocmd call win_gotoid(s:state['winid'])
   call s:notify('selection', l:data)
-  call win_gotoid(l:original_winid)
+  noautocmd call win_gotoid(l:original_winid)
 endfunction
 
 function! s:on_inputchanged() abort
