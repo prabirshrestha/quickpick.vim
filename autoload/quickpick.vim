@@ -21,6 +21,7 @@ function! quickpick#open(opt) abort
       \ 'maxheight': 10,
       \ 'debounce': 250,
       \ 'filter': 1,
+      \ 'winrestcmd': '',
       \ }, a:opt)
 
   let s:inputecharpre = 0
@@ -28,9 +29,10 @@ function! quickpick#open(opt) abort
 
   let s:state['bufnr'] = bufnr('%')
   let s:state['winid'] = win_getid()
+  let s:state['winrestcmd'] = winrestcmd()
 
   " create result buffer
-  exe printf('keepalt botright 1new %s', s:state['filetype'])
+  exe printf('keepalt botright 3new %s', s:state['filetype'])
   let s:state['resultsbufnr'] = bufnr('%')
   let s:state['resultswinid'] = win_getid()
   if s:has_proptype
@@ -156,6 +158,7 @@ function! quickpick#close() abort
 
   exe 'silent! bunload! ' . s:state['promptbufnr']
   exe 'silent! bunload! ' . s:state['resultsbufnr']
+  exe 'silent! ' . s:state['winrestcmd']
 
   let s:inputecharpre = 0
 
