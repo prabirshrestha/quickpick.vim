@@ -209,7 +209,7 @@ function! s:busy_tick(...) abort
 endfunction
 
 function! s:update_items() abort
-  call s:win_execute(s:state['resultswinid'], 'silent! %delete')
+  call s:win_execute(s:state['resultswinid'], 'silent! %delete _')
 
   let s:state['highlights'] = []
 
