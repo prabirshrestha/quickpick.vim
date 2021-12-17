@@ -21,7 +21,6 @@ function! quickpick#open(opt) abort
       \ 'maxheight': 10,
       \ 'debounce': 250,
       \ 'filter': 1,
-      \ 'winrestcmd': '',
       \ }, a:opt)
 
   let s:inputecharpre = 0
@@ -29,7 +28,7 @@ function! quickpick#open(opt) abort
 
   let s:state['bufnr'] = bufnr('%')
   let s:state['winid'] = win_getid()
-  let s:state['winrestcmd'] = winrestcmd()
+  let s:state['wininfo'] = getwininfo()
 
   " create result buffer
   exe printf('keepalt botright 3new %s', s:state['filetype'])
@@ -158,11 +157,39 @@ function! quickpick#close() abort
 
   exe 'silent! bunload! ' . s:state['promptbufnr']
   exe 'silent! bunload! ' . s:state['resultsbufnr']
-  exe 'silent! ' . s:state['winrestcmd']
+  call s:restore_windows()
 
   let s:inputecharpre = 0
 
   unlet s:state
+endfunction
+
+function! s:restore_windows() abort
+  let [tabnr, _] = win_id2tabwin(s:state['winid'])
+  if tabnr == 0
+    return
+  endif
+
+  let Resizable = {_, info -> 
+        \ info.tabnr == tabnr &&
+        \ index(['popup', 'unknown'], win_gettype(info.winid)) == -1
+        \ }
+  let wins_to_resize = sort(filter(s:state['wininfo'], Resizable), {l, r -> l.winnr - r.winnr})
+  let open_winids_to_resize = map(filter(getwininfo(), Resizable), {_, info -> info.winid})
+
+  let resize_cmd = ''
+  for info in wins_to_resize
+    if index(open_winids_to_resize, info.winid) == -1
+      return
+    endif
+
+    let resize_cmd .= printf('%dresize %d | vert %dresize %d |', info.winnr, info.height, info.winnr, info.width)
+  endfor
+
+  " winrestcmd repeats :resize commands twice after patch-8.2.2631.
+  " To simulate this behavior, execute the :resize commands twice.
+  " see https://github.com/vim/vim/issues/7988
+  exe 'silent! ' . resize_cmd . resize_cmd
 endfunction
 
 function! quickpick#items(items) abort
