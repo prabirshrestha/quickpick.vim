@@ -149,7 +149,7 @@ function! quickpick#close() abort
 
   call quickpick#busy(0)
 
-  call win_gotoid(s:state['bufnr'])
+  call win_gotoid(s:state['winid'])
   call s:notify('close', { 'bufnr': s:state['bufnr'], 'winid': s:state['winid'], 'resultsbufnr': s:state['resultsbufnr'], 'resultswinid': s:state['winid'] })
 
   augroup quickpick
