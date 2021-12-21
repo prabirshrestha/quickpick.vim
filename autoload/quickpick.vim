@@ -170,7 +170,7 @@ function! s:restore_windows() abort
     return
   endif
 
-  let Resizable = {_, info -> 
+  let Resizable = {_, info ->
         \ info.tabnr == tabnr &&
         \ index(['popup', 'unknown'], win_gettype(info.winid)) == -1
         \ }
