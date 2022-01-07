@@ -8,14 +8,21 @@ let s:has_proptype = exists('*prop_type_add') && exists('*prop_type_delete')
 "
 if has('nvim')
   function! s:is_floating(winid) abort
+    if !s:win_exists(a:winid)
+      return 0
+    endif
     let l:config = nvim_win_get_config(a:winid)
     return empty(l:config) || !empty(get(l:config, 'relative', ''))
   endfunction
 else
   function! s:is_floating(winid) abort
-    return winheight(a:winid) != -1 && win_id2win(a:winid) == 0
+    return s:win_exists(a:winid) && win_id2win(a:winid) == 0
   endfunction
 endif
+
+function! s:win_exists(winid) abort
+  return winheight(a:winid) != -1
+endfunction
 
 function! quickpick#open(opt) abort
   call quickpick#close() " hide existing picker if exists
@@ -186,6 +193,7 @@ function! s:restore_windows() abort
 
   let l:Resizable = {_, info ->
         \ info.tabnr == l:tabnr &&
+        \ s:win_exists(info.winid) &&
         \ !s:is_floating(info.winid)
         \ }
   let l:wins_to_resize = sort(filter(s:state['wininfo'], l:Resizable), {l, r -> l.winnr - r.winnr})
